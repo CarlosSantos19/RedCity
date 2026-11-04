@@ -85,16 +85,26 @@ export async function guardarVideo(archivo: File): Promise<string> {
 }
 
 export async function borrarFoto(id: string): Promise<void> {
+  if (esUrl(id)) return; // las fotos en la nube las borra su dueño desde el servidor
   await tx('readwrite', (s) => s.delete(id));
+}
+
+/** Las fotos ya subidas a la nube se guardan como dirección https; las locales como id de IndexedDB. */
+export const esUrl = (id: string) => /^https?:\/\//.test(id);
+
+/** Lee el archivo guardado en el dispositivo (para subirlo a la nube). */
+export async function leerBlob(id: string): Promise<Blob | undefined> {
+  return tx<Blob | undefined>('readonly', (s) => s.get(id));
 }
 
 const cache = new Map<string, string>();
 
 /** Devuelve una URL lista para <img src> o <video src>, o null mientras carga / si no existe. */
 export function useFoto(id: string | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(id ? cache.get(id) ?? null : null);
+  const [url, setUrl] = useState<string | null>(id ? (esUrl(id) ? id : cache.get(id) ?? null) : null);
   useEffect(() => {
     if (!id) return setUrl(null);
+    if (esUrl(id)) return setUrl(id);
     if (cache.has(id)) return setUrl(cache.get(id)!);
     let vivo = true;
     tx<Blob | undefined>('readonly', (s) => s.get(id))

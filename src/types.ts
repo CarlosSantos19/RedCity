@@ -273,6 +273,8 @@ interface PostBase {
   compartidos?: number;
   /** Si se publicó a nombre de un negocio */
   empresaId?: string;
+  /** true = solo existe en este dispositivo (p. ej. una contratación privada); no se sube a la nube */
+  local?: boolean;
 }
 
 // ---------- Historias, reels y notas (contenido corto, solo del barrio) ----------

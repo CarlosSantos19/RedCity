@@ -4,6 +4,7 @@ import { CIUDAD, LOCALIDADES, estaEnBogota } from '../data/bogota';
 import { distanciaKm, obtenerUbicacion } from '../geo';
 import { errorClave, errorCorreo, normalizarCorreo } from '../auth';
 import type { Barrio } from '../types';
+import { NUBE } from '../nube/config';
 
 /** Distancia máxima (km) entre el dispositivo y el centro del barrio para marcar al vecino como verificado. */
 const RADIO_VERIFICACION_KM = 1.5;
@@ -27,7 +28,8 @@ export function Onboarding() {
 
       {modo === 'entrar' ? <IniciarSesion onCrear={() => setModo('registro')} /> : <Registro />}
 
-      {cuentas.length > 0 && (
+      {NUBE && <p className="muted centro">¿Solo quieres ver cómo funciona? <a className="enlace" href="?demo">Abrir la versión de demostración</a></p>}
+      {!NUBE && cuentas.length > 0 && (
         <p className="muted centro">
           {cuentas.length} cuenta(s) en este dispositivo ·{' '}
           <button className="enlace" onClick={() => { if (confirm('Esto borra TODAS las cuentas, publicaciones y pagos del demo. ¿Continuar?')) acciones.reiniciarDemo(); }}>
@@ -44,10 +46,25 @@ function IniciarSesion({ onCrear }: { onCrear: () => void }) {
   const [clave, setClave] = useState('');
   const [verClave, setVerClave] = useState(false);
   const [error, setError] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  function entrar(e: React.FormEvent) {
+  async function entrar(e: React.FormEvent) {
     e.preventDefault();
-    setError(acciones.iniciarSesion(correo, clave) ?? '');
+    setAviso('');
+    if (!NUBE) return setError(acciones.iniciarSesion(correo, clave) ?? '');
+    setEnviando(true);
+    const { iniciarSesionEnNube } = await import('../nube/sincronizar');
+    setError((await iniciarSesionEnNube(correo, clave)) ?? '');
+    setEnviando(false);
+  }
+
+  async function olvide() {
+    setError('');
+    const { recuperarClave } = await import('../nube/sincronizar');
+    const err = await recuperarClave(correo);
+    if (err) setError(err);
+    else setAviso(`📧 Si ${correo} tiene una cuenta, te enviamos un enlace para crear una nueva contraseña. Revisa también la carpeta de spam.`);
   }
 
   return (
@@ -62,10 +79,18 @@ function IniciarSesion({ onCrear }: { onCrear: () => void }) {
         </div>
       </label>
       {error && <p className="aviso peligro">{error}</p>}
-      <button className="btn primary" type="submit" disabled={!correo || !clave}>Entrar</button>
-      <button type="button" className="btn secondary" onClick={() => { setCorreo(CUENTA_DEMO.correo); setClave(CUENTA_DEMO.clave); setError(''); }}>
-        🧪 Usar cuenta de prueba
-      </button>
+      {aviso && <p className="aviso">{aviso}</p>}
+      <button className="btn primary" type="submit" disabled={!correo || !clave || enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
+      {NUBE ? (
+        <p className="muted centro">
+          <button type="button" className="enlace" onClick={olvide} disabled={!correo}>¿Olvidaste tu contraseña?</button>
+          {!correo && <small><br />Escribe tu correo arriba y toca el enlace.</small>}
+        </p>
+      ) : (
+        <button type="button" className="btn secondary" onClick={() => { setCorreo(CUENTA_DEMO.correo); setClave(CUENTA_DEMO.clave); setError(''); }}>
+          🧪 Usar cuenta de prueba
+        </button>
+      )}
       <p className="muted centro">¿No tienes cuenta? <button type="button" className="enlace" onClick={onCrear}>Crear una</button></p>
     </form>
   );
@@ -98,7 +123,10 @@ function Registro() {
   // Validación en vivo
   const c = normalizarCorreo(correo);
   const errFormato = c ? errorCorreo(c) : null;
-  const errUsado = c && !errFormato && !acciones.correoDisponible(c) ? 'Ya existe una cuenta con este correo. Inicia sesión.' : null;
+  // En la nube no se puede saber si el correo existe antes de registrarse (protege la privacidad)
+  const errUsado = !NUBE && c && !errFormato && !acciones.correoDisponible(c) ? 'Ya existe una cuenta con este correo. Inicia sesión.' : null;
+  const [enviando, setEnviando] = useState(false);
+  const [revisaCorreo, setRevisaCorreo] = useState(false);
   // El error de formato se muestra al salir del campo, para no regañar mientras se escribe
   const errCorreo = errUsado ?? (correoTocado ? errFormato : null);
   const errClave = clave ? errorClave(clave) : null;
@@ -136,8 +164,24 @@ function Registro() {
   const barrioOk = creandoBarrio ? nuevoBarrio.trim().length >= 3 && !!gps && estaEnBogota(gps.lat, gps.lng) : !!barrio;
   const puedeCrear = nombre.trim().length >= 2 && c && !errFormato && !errUsado && clave && !errClave && clave2 === clave && habeas && localidad && barrioOk;
 
-  function crear(e: React.FormEvent) {
+  async function crear(e: React.FormEvent) {
     e.preventDefault();
+    if (NUBE) {
+      // El servidor crea el perfil y calcula él mismo si quedas verificado (GPS a ≤ 1,5 km del barrio)
+      setEnviando(true);
+      setError('');
+      const { registrarEnNube } = await import('../nube/sincronizar');
+      const r = await registrarEnNube({
+        nombre, correo: c, clave, localidad,
+        barrio: creandoBarrio ? '' : barrioId,
+        barrioNuevo: creandoBarrio ? nuevoBarrio.trim() : undefined,
+        gps: gps && estaEnBogota(gps.lat, gps.lng) ? gps : undefined,
+      });
+      setEnviando(false);
+      if (r.error) setError(r.error);
+      if (r.confirmarCorreo) setRevisaCorreo(true);
+      return;
+    }
     let destino: Barrio;
     let creado: Barrio | undefined;
     if (creandoBarrio && gps) {
@@ -217,7 +261,14 @@ function Registro() {
       </label>
 
       {error && <p className="aviso peligro">{error}</p>}
-      <button className="btn primary" type="submit" disabled={!puedeCrear}>Crear cuenta y entrar</button>
+      {revisaCorreo ? (
+        <p className="aviso ok-fondo">
+          📧 <b>¡Casi listo!</b> Te enviamos un correo a <b>{c}</b>. Abre el enlace para confirmar tu cuenta y entrarás directo a tu barrio.
+          <br /><small>Si no lo ves en unos minutos, revisa la carpeta de spam.</small>
+        </p>
+      ) : (
+        <button className="btn primary" type="submit" disabled={!puedeCrear || enviando}>{enviando ? 'Creando tu cuenta…' : 'Crear cuenta y entrar'}</button>
+      )}
       <small className="muted">
         Los vecinos que se registran con el GPS dentro del barrio quedan como <b>✔ verificados</b>. Así se evitan perfiles falsos.
       </small>

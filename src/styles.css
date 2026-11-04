@@ -571,3 +571,12 @@ h1, h2, h3, h4 { margin: 0; }
 @media (min-width: 700px) {
   .fila-desplazable > .filtros { flex-wrap: wrap; overflow: visible; }
 }
+
+/* ---------- Nube (Supabase) ---------- */
+.cargando-nube { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; color: var(--suave); }
+.cargando-nube img { width: 72px; height: 72px; border-radius: 18px; animation: latido 1.2s infinite; }
+.toast-error { position: fixed; left: 50%; bottom: 5.5rem; transform: translateX(-50%); z-index: 4000; max-width: min(92vw, 520px);
+  display: flex; gap: .7rem; align-items: flex-start; background: #1c1416; color: #fff; padding: .8rem 1rem; border-radius: 12px;
+  box-shadow: 0 6px 20px #0005; font-size: .88rem; }
+.toast-error button { border: none; background: none; color: #fff; font-size: 1rem; padding: 0; }
+.aviso-dispositivo { margin: .75rem 1rem 0; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: .6rem .8rem; font-size: .84rem; }

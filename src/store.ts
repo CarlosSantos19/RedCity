@@ -4,6 +4,7 @@ import type {
   PostServicio, Postulacion, Promocion, Red, Reel, Reporte, RespuestaAlerta, TipoDocumento, TipoRed, Usuario, VisibilidadFoto,
 } from './types';
 import { borrarFoto } from './fotos';
+import { NUBE } from './nube/config';
 import { PLAN, costoPromocion, finPromocion, motivoNoPromocionable, promoActiva } from './promociones';
 import { BARRIOS_SEMILLA } from './data/bogota';
 import { empresasSemilla, vincularPostsDemo } from './data/seed';
@@ -118,8 +119,30 @@ export function alertaActiva(m: MensajeRed): boolean {
 
 export const esMiembro = (red: Red, usuarioId: string) => red.miembros.some((m) => m.usuarioId === usuarioId);
 
-const CLAVE = 'microcomunidades_v4';
+// En modo nube los datos locales se guardan aparte, para no mezclarlos con los del demo
+const CLAVE = NUBE ? 'redcity_nube_v1' : 'microcomunidades_v4';
 const listeners = new Set<() => void>();
+
+/**
+ * Ganchos hacia Supabase (los registra src/nube/sincronizar.ts al arrancar en modo nube).
+ * Así el estado local no depende directamente de la nube y el modo demo sigue funcionando igual.
+ */
+export interface GanchosNube {
+  publicar(post: Post): void;
+  eliminar(postId: string): void;
+  responder(postId: string, texto: string): void;
+  meGusta(postId: string, activo: boolean): void;
+  compartido(postId: string): void;
+  reportar(postId: string, motivo: MotivoReporte): void;
+  actualizarNombre(nombre: string): void;
+  cerrarSesion(): void;
+}
+let nube: GanchosNube | null = null;
+export function registrarGanchosNube(g: GanchosNube) { nube = g; }
+
+/** Para el módulo de sincronización: leer y modificar el estado. */
+export const leerEstado = () => estado;
+export function actualizarEstado(fn: (s: Estado) => Estado) { set(fn); }
 
 /** Cuenta de prueba precargada (SOLO DEMO; eliminar al pasar a producción). */
 export const CUENTA_DEMO = { nombre: 'Vecino de Prueba', correo: 'demo@redcity.co', clave: 'Vecino2026' };
@@ -134,7 +157,13 @@ function cuentaDemo(): Cuenta {
 }
 
 function inicial(): Estado {
-  const posts = vincularPostsDemo([...postsSemilla(BARRIOS_SEMILLA), ...garajeSemilla(BARRIOS_SEMILLA)]);
+  // En modo nube las publicaciones son reales (vienen de Supabase): sin publicaciones ni cuenta de ejemplo
+  const posts = NUBE ? [] : vincularPostsDemo([...postsSemilla(BARRIOS_SEMILLA), ...garajeSemilla(BARRIOS_SEMILLA)]);
+  if (NUBE) {
+    // Modo real: nada de ejemplo (negocios, redes, reseñas, historias falsas confundirían a los vecinos)
+    return { cuentas: [], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts: [], pagos: [], redes: [],
+      conversaciones: [], calificaciones: [], reportes: [], promociones: [], historias: [], reels: [], notas: [], empresas: [] };
+  }
   return { cuentas: [cuentaDemo()], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts, pagos: [], redes: redesSemilla(BARRIOS_SEMILLA),
     conversaciones: [], calificaciones: calificacionesSemilla(), reportes: [], promociones: promocionesSemilla(posts),
     historias: historiasSemilla(BARRIOS_SEMILLA), reels: [], notas: notasSemilla(BARRIOS_SEMILLA),
@@ -159,7 +188,7 @@ function cargar(): Estado {
     if (raw) {
       const s = JSON.parse(raw) as Estado;
       // Garantiza que la cuenta demo exista también en datos guardados antes de crearla
-      if (!s.cuentas.some((c) => c.correo === CUENTA_DEMO.correo)) s.cuentas = [cuentaDemo(), ...s.cuentas];
+      if (!NUBE && !s.cuentas.some((c) => c.correo === CUENTA_DEMO.correo)) s.cuentas = [cuentaDemo(), ...s.cuentas];
       // Datos guardados antes de existir las redes: se agregan sin borrar cuentas
       if (!s.redes) s.redes = redesSemilla(s.barrios);
       s.conversaciones ??= [];
@@ -167,7 +196,7 @@ function cargar(): Estado {
       s.reportes ??= [];
       s.promociones ??= promocionesSemilla(s.posts);
       // Datos guardados antes de existir las ventas de garaje
-      if (!s.posts.some((p) => p.categoria === 'garaje')) s.posts = [...s.posts, ...garajeSemilla(s.barrios)];
+      if (!NUBE && !s.posts.some((p) => p.categoria === 'garaje')) s.posts = [...s.posts, ...garajeSemilla(s.barrios)];
       // Datos guardados antes de existir las páginas de negocio
       if (!s.empresas) {
         s.empresas = empresasSemilla(s.barrios);
@@ -181,6 +210,16 @@ function cargar(): Estado {
       s.notas = s.notas.filter((n) => vigente(n));
       // Pagos creados antes de incluir el costo de la pasarela
       s.pagos = s.pagos.map((p) => ({ ...p, pasarela: p.pasarela ?? 0, total: p.total ?? p.valor }));
+      if (NUBE) {
+        // Modo real: se descartan los datos de ejemplo que hubieran quedado guardados en este navegador
+        const ejemplo = (id: string) => /^(seed-|demo-|emp-|red-)/.test(id);
+        s.empresas = s.empresas.filter((e) => !ejemplo(e.id));
+        s.redes = s.redes.filter((r) => !ejemplo(r.id));
+        s.historias = s.historias.filter((h) => !ejemplo(h.autorId));
+        s.notas = s.notas.filter((n) => !ejemplo(n.autorId));
+        s.calificaciones = s.calificaciones.filter((c) => !ejemplo(c.deId));
+        s.promociones = s.promociones.filter((p) => !ejemplo(p.autorId));
+      }
       return conUsuario(s);
     }
   } catch { /* almacenamiento no disponible */ }
@@ -346,6 +385,7 @@ export const acciones = {
   },
   /** Cierra la sesión sin borrar datos. */
   cerrarSesion() {
+    nube?.cerrarSesion();
     set((s) => ({ ...s, sesionId: null }));
   },
   correoDisponible(correoTexto: string): boolean {
@@ -357,12 +397,15 @@ export const acciones = {
   },
   publicar(post: Post) {
     set((s) => ({ ...s, posts: [post, ...s.posts] }));
+    if (nube && !post.local) { nube.publicar(post); return; }
+    // Solo en el demo: vecinos ficticios se postulan para mostrar el flujo
     if (post.categoria === 'servicio' && post.modo === 'necesito' && post.valor > 0) simularPostulaciones(post);
   },
   responder(postId: string, autor: string, texto: string) {
     actualizarPost(postId, (p) => ({
       ...p, respuestas: [...p.respuestas, { id: nuevoId(), autor, texto, creado: Date.now() }],
     }));
+    nube?.responder(postId, texto);
   },
   confirmarAlerta(postId: string, usuarioId: string) {
     actualizarPost(postId, (p) => (p.categoria === 'seguridad' ? { ...p, confirmaciones: alternar(p.confirmaciones, usuarioId) } : p));
@@ -412,6 +455,7 @@ export const acciones = {
     actualizarPost(postId, (p) => (p.categoria === 'trueque' ? { ...p, estado: 'intercambiado' } : p));
   },
   eliminar(postId: string) {
+    if (nube && !estado.posts.find((p) => p.id === postId)?.local) nube.eliminar(postId);
     set((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== postId) }));
   },
 
@@ -428,7 +472,7 @@ export const acciones = {
   contratarOferta(oferta: PostServicio, cliente: Usuario): string {
     const postulacionId = nuevoId();
     const contrato: PostServicio = {
-      id: nuevoId(), categoria: 'servicio', modo: 'necesito',
+      id: nuevoId(), categoria: 'servicio', modo: 'necesito', local: true, // la contratación es privada: no va al feed
       titulo: `Contratación: ${oferta.titulo}`, descripcion: `Contratado desde la oferta de ${oferta.autor}.`,
       autorId: cliente.id, autor: cliente.nombre, autorVerificado: cliente.verificado, barrioId: cliente.barrioId,
       creado: Date.now(), respuestas: [], ...difuminar(cliente.lat, cliente.lng),
@@ -598,6 +642,12 @@ export const acciones = {
     if (post.autorId === porId) return 'No puedes reportar tu propia publicación.';
     if (estado.reportes.some((r) => r.postId === postId && r.porId === porId)) return 'Ya reportaste esta publicación.';
     const reporte: Reporte = { id: nuevoId(), postId, porId, motivo, creado: Date.now() };
+    if (nube && !post.local) {
+      // En la nube el conteo y el ocultamiento los hace el servidor (con reportes de todos los vecinos)
+      set((s) => ({ ...s, reportes: [...s.reportes, reporte] }));
+      nube.reportar(postId, motivo);
+      return null;
+    }
     set((s) => {
       const reportes = [...s.reportes, reporte];
       const total = new Set(reportes.filter((r) => r.postId === postId).map((r) => r.porId)).size;
@@ -706,9 +756,11 @@ export const acciones = {
   // ---------- Interacciones: me gusta, compartir, guardar ----------
   meGusta(postId: string, usuarioId: string) {
     actualizarPost(postId, (p) => ({ ...p, meGusta: alternar(p.meGusta ?? [], usuarioId) }));
+    nube?.meGusta(postId, !!estado.posts.find((p) => p.id === postId)?.meGusta?.includes(usuarioId));
   },
   compartido(postId: string) {
     actualizarPost(postId, (p) => ({ ...p, compartidos: (p.compartidos ?? 0) + 1 }));
+    nube?.compartido(postId);
   },
   guardar(usuarioId: string, postId: string) {
     set((s) => ({ ...s, cuentas: s.cuentas.map((c) => (c.id === usuarioId ? { ...c, guardados: alternar(c.guardados ?? [], postId) } : c)) }));
@@ -815,6 +867,7 @@ export const acciones = {
   actualizarNombre(usuarioId: string, nombre: string) {
     if (nombre.trim().length < 2) return;
     set((s) => ({ ...s, cuentas: s.cuentas.map((c) => (c.id === usuarioId ? { ...c, nombre: nombre.trim() } : c)) }));
+    nube?.actualizarNombre(nombre.trim());
   },
 
   /** Borra TODO (cuentas, publicaciones, pagos) y vuelve a los datos de ejemplo. */

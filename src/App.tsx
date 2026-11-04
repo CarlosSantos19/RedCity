@@ -23,6 +23,9 @@ import { DirectorioEmpresas, FormEmpresa, PaginaEmpresa } from './components/Emp
 import type { Empresa } from './types';
 import { PanelDerecho, PanelIzquierdo } from './components/Laterales';
 import { FilaDesplazable } from './components/FilaDesplazable';
+import { NUBE } from './nube/config';
+import { AvisoSoloDispositivo, CargandoNube, ErrorNube, NuevaClave } from './nube/ComponentesNube';
+import { useNube } from './nube/sincronizar';
 
 const RADIOS = [0.5, 1, 2];
 /** Las alertas urgentes se fijan arriba del feed durante 24 h. */
@@ -58,6 +61,7 @@ function textoBuscable(p: Post): string {
 
 export default function App() {
   const { usuario, barrios, posts, pagos, redes, conversaciones, promociones, empresas } = useEstado();
+  const estadoNube = useNube();
   const [verNegocios, setVerNegocios] = useState(false);
   /** null = cerrado; { empresa: undefined } = crear; { empresa } = editar */
   const [formEmpresa, setFormEmpresa] = useState<{ empresa?: Empresa } | null>(null);
@@ -146,7 +150,8 @@ export default function App() {
     acciones.registrarVistas(nuevas);
   }, [enFeed, idsPromo]);
 
-  if (!usuario) return <Onboarding />;
+  if (NUBE && estadoNube.iniciando) return <><CargandoNube /><ErrorNube /></>;
+  if (!usuario) return <><Onboarding /><NuevaClave /><ErrorNube /></>;
 
   const barrio = barrios.find((b) => b.id === usuario.barrioId);
   const urgentes = cercanos.filter((x) => x.post.categoria === 'seguridad' && x.post.nivel === 'urgente').length;
@@ -240,6 +245,9 @@ export default function App() {
         </>
       )}
 
+      {vista === 'redes' && <AvisoSoloDispositivo que="Redes de seguridad y apoyo" />}
+      {vista === 'mensajes' && <AvisoSoloDispositivo que="El chat privado" />}
+      {vista === 'servicios' && <AvisoSoloDispositivo que="Propuestas, pagos y promociones" />}
       <main>
         {vista === 'redes' && <Redes usuario={usuario} redes={redes} barrios={barrios} onAbrir={nav.red} />}
         {vista === 'mensajes' && <Bandeja usuario={usuario} />}
@@ -300,6 +308,8 @@ export default function App() {
       {creacion === 'envivo' && <EnVivo onCerrar={() => setCreacion(null)} />}
       {verReels && !creacion && <VisorReels usuario={usuario} onCerrar={() => setVerReels(false)} onCrear={() => setCreacion('reel')} />}
       {visorHist && <VisorHistorias grupos={visorHist.grupos} inicial={visorHist.indice} usuario={usuario} onCerrar={() => setVisorHist(null)} />}
+      <NuevaClave />
+      <ErrorNube />
       {creando && <NewPost usuario={usuario} categoriaInicial={filtro === 'todo' ? 'servicio' : filtro} onCerrar={() => setCreando(false)} />}
     </div>
     <aside className="lateral derecha">

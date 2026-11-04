@@ -86,7 +86,24 @@ Cada `git push` a la rama `main` compila y publica la app automáticamente ([.gi
 
 Solo la primera vez: en GitHub ve a **Settings → Pages → Build and deployment → Source** y elige **GitHub Actions**.
 
-> ⚠️ Mientras no se conecte Supabase, cada persona guarda sus datos **solo en su propio navegador**: la app publicada sirve para mostrarla y probarla, pero dos vecinos en celulares distintos todavía no se ven entre sí.
+## Base de datos (Supabase)
+
+La app está conectada a Supabase ([src/nube/](src/nube/)). La URL y la clave **publicable** van en [src/nube/config.ts](src/nube/config.ts): son públicas por diseño y los datos los protegen las reglas RLS. **Nunca** poner en el código la *secret key* ni la contraseña de la base de datos.
+
+Para montar la base de datos desde cero, en Supabase → SQL Editor ejecutar en orden:
+1. [supabase/schema.sql](supabase/schema.sql)
+2. [supabase/migraciones/0002_etapa1.sql](supabase/migraciones/0002_etapa1.sql)
+
+| Etapa | Qué está compartido entre vecinos | Estado |
+|---|---|---|
+| 1 | Cuentas (registro, inicio de sesión, recuperar contraseña), perfiles con verificación calculada por el servidor, barrios, **publicaciones de todas las categorías, fotos, comentarios, me gusta, compartidos y reportes** | ✅ |
+| 2 | Chat privado, redes de seguridad con SOS, propuestas y pagos de servicios | Pendiente (funciona en el dispositivo) |
+| 3 | Negocios, historias, reels, notas, promociones, foto de perfil | Pendiente (funciona en el dispositivo) |
+| 4 | Notificaciones push y pasarela de pagos real | Pendiente |
+
+**Modo demo:** agregando `?demo` a la dirección (por ejemplo `https://carlossantos19.github.io/RedCity/?demo`) la app funciona solo con datos de ejemplo en el navegador, útil para presentaciones.
+
+**Correos:** la confirmación de correo está desactivada mientras se configura un servicio de correo propio (SMTP), porque el correo gratuito de Supabase solo envía a los miembros del equipo del proyecto.
 
 Abre http://localhost:5173. Como `--host` está activo, también puedes abrirla desde tu celular en la misma red WiFi con la IP que muestra la consola.
 El demo guarda todo en el navegador (localStorage) y trae 24 barrios de ejemplo en las 20 localidades.
