@@ -2,7 +2,7 @@ import { createClient, type Session } from '@supabase/supabase-js';
 import { useSyncExternalStore } from 'react';
 import { SUPABASE_KEY, SUPABASE_URL } from './config';
 import { actualizarEstado, leerEstado, registrarGanchosNube } from '../store';
-import type { Barrio, Conversacion, Cuenta, MensajePrivado, MensajeRed, MotivoReporte, Post, Red, Respuesta } from '../types';
+import type { Barrio, Calificacion, Conversacion, Cuenta, MensajePrivado, MensajeRed, MotivoReporte, Pago, Post, Postulacion, Red, Respuesta } from '../types';
 import { leerUI, nav } from '../ui';
 import { esUrl, leerBlob } from '../fotos';
 import { URL_APP } from '../marca';
@@ -154,6 +154,7 @@ async function entrar(sesion: Session) {
   };
   actualizarEstado((s) => ({ ...s, cuentas: [...s.cuentas.filter((c) => c.id !== p.id), cuenta], sesionId: p.id }));
   await Promise.all([cargarFeed(), cargarRedes(), cargarChats()]);
+  await cargarServicios();
   escucharTiempoReal();
 }
 
@@ -172,7 +173,7 @@ interface FilaFeed {
 
 /** Campos que cambian por las interacciones que AÚN viven en el dispositivo (Etapa 2): se conservan al refrescar. */
 const CAMPOS_LOCALES: Partial<Record<Post['categoria'], string[]>> = {
-  servicio: ['estado', 'postulaciones', 'asignadoId', 'realizados'],
+  servicio: ['postulaciones'], // el estado lo decide el servidor; las propuestas se recargan en cargarServicios()
   seguridad: ['confirmaciones'],
   evento: ['asistentes'],
   garaje: ['asistentes', 'articulos'],
@@ -274,6 +275,74 @@ async function intentarRedes(contexto: string, op: PromiseLike<{ error: unknown 
   const { error } = await op;
   if (error) mostrarError(contexto, error);
   await cargarRedes();
+}
+
+// ---------- Etapa 2b: servicios (propuestas, pagos, calificaciones) ----------
+interface FilaPostulacion { id: string; publicacion_id: string; proveedor_id: string; proveedor: string; verificado: boolean; precio: number; mensaje: string; creado_en: string }
+interface FilaPago { id: string; publicacion_id: string; titulo: string; cliente_id: string; proveedor_id: string; proveedor: string; valor: number; pasarela: number; total: number; comision: number; neto: number; estado: Pago['estado']; creado_en: string }
+interface FilaCalificacion { pago_id: string; de_id: string; de_nombre: string; para_id: string; estrellas: number; comentario: string; creado_en: string }
+
+let cargandoServicios = false;
+export async function cargarServicios() {
+  if (!uid || cargandoServicios) return;
+  cargandoServicios = true;
+  try {
+    const posts = leerEstado().posts;
+    const servicios = posts.filter((p) => p.categoria === 'servicio' && p.modo === 'necesito' && !p.local).map((p) => p.id);
+    const [props, pagosR] = await Promise.all([
+      servicios.length ? supabase.rpc('postulaciones_visibles', { p_ids: servicios }) : Promise.resolve({ data: [], error: null }),
+      supabase.rpc('mis_pagos'),
+    ]);
+    if (props.error) return mostrarError('No se pudieron cargar las propuestas', props.error);
+    if (pagosR.error) return mostrarError('No se pudieron cargar los pagos', pagosR.error);
+
+    const porPost = new Map<string, Postulacion[]>();
+    for (const p of (props.data ?? []) as FilaPostulacion[]) {
+      const lista = porPost.get(p.publicacion_id) ?? [];
+      lista.push({ id: p.id, proveedorId: p.proveedor_id, proveedor: p.proveedor, verificado: p.verificado, precio: Number(p.precio), mensaje: p.mensaje, creado: Date.parse(p.creado_en) });
+      porPost.set(p.publicacion_id, lista);
+    }
+    const pagos: Pago[] = ((pagosR.data ?? []) as FilaPago[]).map((p) => ({
+      id: p.id, postId: p.publicacion_id, titulo: p.titulo, clienteId: p.cliente_id, proveedorId: p.proveedor_id, proveedor: p.proveedor,
+      valor: Number(p.valor), pasarela: Number(p.pasarela), total: Number(p.total), comision: Number(p.comision), neto: Number(p.neto),
+      estado: p.estado, creado: Date.parse(p.creado_en),
+    }));
+
+    // Reputación: autores del feed, proveedores que se postularon y yo
+    const personas = new Set<string>([uid, ...posts.map((p) => p.autorId)]);
+    for (const l of porPost.values()) for (const p of l) personas.add(p.proveedorId);
+    const cal = await supabase.rpc('calificaciones_de', { p_ids: [...personas] });
+    if (cal.error) return mostrarError('No se pudieron cargar las calificaciones', cal.error);
+    const calificaciones: Calificacion[] = ((cal.data ?? []) as FilaCalificacion[]).map((c) => ({
+      id: c.pago_id + '-' + c.de_id, pagoId: c.pago_id, deId: c.de_id, deNombre: c.de_nombre, paraId: c.para_id,
+      estrellas: c.estrellas, comentario: c.comentario, creado: Date.parse(c.creado_en),
+    }));
+
+    actualizarEstado((s) => ({
+      ...s, pagos, calificaciones,
+      posts: s.posts.map((p) => (p.categoria === 'servicio' && p.modo === 'necesito' && !p.local ? { ...p, postulaciones: porPost.get(p.id) ?? [] } : p)),
+    }));
+  } finally {
+    cargandoServicios = false;
+  }
+}
+
+/**
+ * Las acciones de servicios van al servidor EN FILA, en el orden en que el vecino tocó los botones.
+ * Sin esto, "Pagar" y luego "Confirmar" tocados rápido podían llegar al revés al servidor
+ * (la app muestra el pago al instante, pero el servidor aún lo estaba procesando).
+ */
+let filaServicios: Promise<void> = Promise.resolve();
+function servicio(contexto: string, crear: () => PromiseLike<{ error: unknown }>): Promise<void> {
+  const tarea = async () => {
+    const { error } = await crear();
+    if (error) mostrarError(contexto, error);
+  };
+  filaServicios = filaServicios.then(tarea, tarea);
+  const hecha = filaServicios;
+  // Al terminar todo lo pendiente, se recarga el estado real desde el servidor
+  void hecha.then(async () => { if (filaServicios === hecha) { await cargarFeed(); await cargarServicios(); } });
+  return hecha;
 }
 
 // ---------- Etapa 2: redes de seguridad y apoyo ----------
@@ -417,9 +486,9 @@ async function enviarPrivado(convId: string, m: MensajePrivado) {
 // Supabase avisa al instante de SOS, respuestas, miembros y mensajes nuevos (respetando RLS).
 let canal: ReturnType<typeof supabase.channel> | null = null;
 const temporizadores: Record<string, ReturnType<typeof setTimeout>> = {};
-function programar(que: 'redes' | 'chats' | 'feed') {
+function programar(que: 'redes' | 'chats' | 'feed' | 'servicios') {
   clearTimeout(temporizadores[que]);
-  temporizadores[que] = setTimeout(() => void (que === 'redes' ? cargarRedes() : que === 'chats' ? cargarChats() : cargarFeed()), 250);
+  temporizadores[que] = setTimeout(() => void (que === 'redes' ? cargarRedes() : que === 'chats' ? cargarChats() : que === 'servicios' ? cargarFeed().then(cargarServicios) : cargarFeed()), 250);
 }
 function escucharTiempoReal() {
   if (canal) return;
@@ -429,6 +498,8 @@ function escucharTiempoReal() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'miembros_red' }, () => programar('redes'))
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_privados' }, () => programar('chats'))
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversaciones' }, () => programar('chats'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'postulaciones' }, () => programar('servicios'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pagos' }, () => programar('servicios'))
     .subscribe();
 }
 function dejarDeEscuchar() {
@@ -483,6 +554,18 @@ export async function iniciarNube() {
       : supabase.from('respuestas_alerta').delete().eq('mensaje_id', mid).eq('perfil_id', uid!).eq('accion', accion)),
     resolverAlerta: (mid) => void intentarRedes('No se pudo marcar como resuelta', supabase.from('mensajes_red').update({ resuelta: true }).eq('id', mid)),
 
+    // Etapa 2b: servicios (el servidor valida todo y maneja el dinero)
+    postular: (id, precio, mensaje) => void servicio('No se pudo enviar tu propuesta', () => supabase.rpc('postular', { p_publicacion: id, p_precio: precio, p_mensaje: mensaje })),
+    contratar: (postulacionId) => void servicio('No se pudo contratar', () => supabase.rpc('contratar', { p_postulacion: postulacionId })),
+    contratarOferta: (ofertaId, contratoId) => {
+      enVuelo.add(contratoId);
+      void servicio('No se pudo contratar', () => supabase.rpc('contratar_oferta', { p_oferta: ofertaId, p_id: contratoId })).finally(() => enVuelo.delete(contratoId));
+    },
+    pagar: (id) => void servicio('No se pudo procesar el pago', () => supabase.rpc('pagar_servicio', { p_publicacion: id })),
+    confirmarServicio: (id) => void servicio('No se pudo confirmar el servicio', () => supabase.rpc('confirmar_servicio', { p_publicacion: id })),
+    cancelarServicio: (id) => void servicio('No se pudo cancelar', () => supabase.rpc('cancelar_servicio', { p_publicacion: id })),
+    calificar: (pagoId, estrellas, comentario) => void servicio('No se pudo guardar tu calificación', () => supabase.rpc('calificar', { p_pago: pagoId, p_estrellas: estrellas, p_comentario: comentario })),
+
     // Etapa 2: chat
     abrirConversacion: (convId, otroId, postId) => void abrirConversacion(convId, otroId, postId),
     enviarPrivado: (convId, m) => void enviarPrivado(convId, m),
@@ -507,7 +590,7 @@ export async function iniciarNube() {
 
   // Refresco periódico del feed (cada 20 s con la app visible) y al volver a la pestaña
   // (el tiempo real avisa al instante; esto es por si se cae la conexión en tiempo real)
-  const refrescarTodo = () => { void cargarFeed(); void cargarRedes(); void cargarChats(); };
+  const refrescarTodo = () => { void cargarFeed().then(cargarServicios); void cargarRedes(); void cargarChats(); };
   setInterval(() => { if (document.visibilityState === 'visible') refrescarTodo(); }, 20_000);
   // Las redes (SOS) se revisan más seguido: un SOS no puede depender solo del tiempo real
   setInterval(() => { if (document.visibilityState === 'visible') void cargarRedes(); }, 10_000);

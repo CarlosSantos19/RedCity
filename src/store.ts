@@ -147,6 +147,14 @@ export interface GanchosNube {
   abrirConversacion(convId: string, otroId: string, postId?: string): void;
   enviarPrivado(convId: string, mensaje: MensajePrivado): void;
   marcarLeida(convId: string): void;
+  // Etapa 2b: servicios (el estado y el dinero los decide el servidor)
+  postular(postId: string, precio: number, mensaje: string): void;
+  contratar(postulacionId: string): void;
+  contratarOferta(ofertaId: string, contratoId: string): void;
+  pagar(postId: string): void;
+  confirmarServicio(postId: string): void;
+  cancelarServicio(postId: string): void;
+  calificar(pagoId: string, estrellas: number, comentario: string): void;
 }
 let nube: GanchosNube | null = null;
 export function registrarGanchosNube(g: GanchosNube) { nube = g; }
@@ -474,16 +482,19 @@ export const acciones = {
   /** Un proveedor se postula a una necesidad publicada */
   postular(postId: string, postulacion: Postulacion) {
     actualizarServicio(postId, (p) => ({ ...p, postulaciones: [...p.postulaciones, postulacion] }));
+    nube?.postular(postId, postulacion.precio, postulacion.mensaje);
   },
   /** El cliente elige a uno de los postulados */
   contratar(postId: string, postulacionId: string) {
     actualizarServicio(postId, (p) => ({ ...p, estado: 'asignada', asignadoId: postulacionId }));
+    nube?.contratar(postulacionId);
   },
   /** Un vecino contrata directamente un servicio que alguien ofrece. Devuelve el id de la contratación. */
   contratarOferta(oferta: PostServicio, cliente: Usuario): string {
     const postulacionId = nuevoId();
     const contrato: PostServicio = {
-      id: nuevoId(), categoria: 'servicio', modo: 'necesito', local: true, // la contratación es privada: no va al feed
+      // la contratación es privada: en el demo vive en el dispositivo; en la nube la crea el servidor (oculta del feed)
+      id: nuevoId(), categoria: 'servicio', modo: 'necesito', local: !nube,
       titulo: `Contratación: ${oferta.titulo}`, descripcion: `Contratado desde la oferta de ${oferta.autor}.`,
       autorId: cliente.id, autor: cliente.nombre, autorVerificado: cliente.verificado, barrioId: cliente.barrioId,
       creado: Date.now(), respuestas: [], ...difuminar(cliente.lat, cliente.lng),
@@ -495,6 +506,7 @@ export const acciones = {
       }],
     };
     set((s) => ({ ...s, posts: [contrato, ...s.posts] }));
+    nube?.contratarOferta(oferta.id, contrato.id);
     return contrato.id;
   },
   /**
@@ -505,6 +517,12 @@ export const acciones = {
     const post = estado.posts.find((p): p is PostServicio => p.id === postId && p.categoria === 'servicio');
     const elegido = post?.postulaciones.find((x) => x.id === post.asignadoId);
     if (!post || !elegido || post.estado !== 'asignada') return;
+    if (nube) {
+      // En la nube el pago (y su id) lo crea el servidor; aquí solo se refleja el estado mientras responde
+      actualizarServicio(postId, (p) => ({ ...p, estado: 'pagada' }));
+      nube.pagar(postId);
+      return;
+    }
     const pago: Pago = {
       id: nuevoId(), postId, titulo: post.titulo, clienteId: post.autorId,
       proveedorId: elegido.proveedorId, proveedor: elegido.proveedor,
@@ -527,6 +545,7 @@ export const acciones = {
         return { ...p, realizados: p.realizados + 1, estado: p.frecuencia === 'una-vez' ? 'completada' : 'asignada' };
       }),
     }));
+    nube?.confirmarServicio(postId);
   },
   /** Cancela el servicio; si había un pago retenido se reembolsa completo. */
   cancelarServicio(postId: string) {
@@ -535,6 +554,7 @@ export const acciones = {
       pagos: s.pagos.map((pg) => (pg.postId === postId && pg.estado === 'retenido' ? { ...pg, estado: 'reembolsado' } : pg)),
       posts: s.posts.map((p) => (p.id === postId && p.categoria === 'servicio' ? { ...p, estado: 'cancelada' } : p)),
     }));
+    nube?.cancelarServicio(postId);
   },
 
   // ---------- Redes de seguridad y apoyo ----------
@@ -657,6 +677,7 @@ export const acciones = {
       estrellas, comentario: comentario.trim(), creado: Date.now(),
     };
     set((s) => ({ ...s, calificaciones: [cal, ...s.calificaciones] }));
+    nube?.calificar(pagoId, estrellas, comentario.trim());
     return null;
   },
 
