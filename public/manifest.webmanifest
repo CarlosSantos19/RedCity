@@ -1,0 +1,18 @@
+{
+  "name": "RedCity · Bogotá",
+  "short_name": "RedCity",
+  "description": "La red de tu barrio: servicios, redes de seguridad y apoyo, trueque, ofertas y eventos a pocas cuadras.",
+  "lang": "es-CO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#d91e2b",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
