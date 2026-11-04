@@ -245,8 +245,6 @@ export default function App() {
         </>
       )}
 
-      {vista === 'redes' && <AvisoSoloDispositivo que="Redes de seguridad y apoyo" />}
-      {vista === 'mensajes' && <AvisoSoloDispositivo que="El chat privado" />}
       {vista === 'servicios' && <AvisoSoloDispositivo que="Propuestas, pagos y promociones" />}
       <main>
         {vista === 'redes' && <Redes usuario={usuario} redes={redes} barrios={barrios} onAbrir={nav.red} />}

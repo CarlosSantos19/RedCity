@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type {
-  Barrio, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
+  Barrio, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajePrivado, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
   PostServicio, Postulacion, Promocion, Red, Reel, Reporte, RespuestaAlerta, TipoDocumento, TipoRed, Usuario, VisibilidadFoto,
 } from './types';
 import { borrarFoto } from './fotos';
@@ -136,6 +136,17 @@ export interface GanchosNube {
   reportar(postId: string, motivo: MotivoReporte): void;
   actualizarNombre(nombre: string): void;
   cerrarSesion(): void;
+  // Etapa 2: redes y chat
+  crearRed(red: Red): void;
+  unirseRed(redId: string): void;
+  salirRed(redId: string): void;
+  quitarMiembro(redId: string, usuarioId: string): void;
+  mensajeRed(redId: string, msg: MensajeRed): void;
+  responderAlerta(mensajeId: string, accion: RespuestaAlerta['accion'], activo: boolean): void;
+  resolverAlerta(mensajeId: string): void;
+  abrirConversacion(convId: string, otroId: string, postId?: string): void;
+  enviarPrivado(convId: string, mensaje: MensajePrivado): void;
+  marcarLeida(convId: string): void;
 }
 let nube: GanchosNube | null = null;
 export function registrarGanchosNube(g: GanchosNube) { nube = g; }
@@ -535,12 +546,16 @@ export const acciones = {
       mensajes: [],
     };
     set((s) => ({ ...s, redes: [red, ...s.redes] }));
+    nube?.crearRed(red);
     return red.id;
   },
   unirseRed(redId: string, u: Usuario) {
+    const ya = estado.redes.find((r) => r.id === redId && esMiembro(r, u.id));
     actualizarRed(redId, (r) => esMiembro(r, u.id) ? r : {
       ...r, miembros: [...r.miembros, { usuarioId: u.id, nombre: u.nombre, rol: 'miembro', unido: Date.now() }],
+      totalMiembros: (r.totalMiembros ?? r.miembros.length) + 1,
     });
+    if (!ya) nube?.unirseRed(redId);
   },
   /** Devuelve el id de la red, o un error. */
   unirsePorCodigo(codigo: string, u: Usuario): { redId?: string; error?: string } {
@@ -563,30 +578,34 @@ export const acciones = {
         return [{ ...r, miembros }];
       }),
     }));
+    nube?.salirRed(redId);
   },
   quitarMiembro(redId: string, usuarioId: string) {
     actualizarRed(redId, (r) => ({ ...r, miembros: r.miembros.filter((m) => m.usuarioId !== usuarioId) }));
+    nube?.quitarMiembro(redId, usuarioId);
   },
   enviarMensajeRed(redId: string, autor: Usuario, datos: Pick<MensajeRed, 'tipo' | 'texto' | 'lat' | 'lng'>) {
     const msg: MensajeRed = { id: nuevoId(), autorId: autor.id, autor: autor.nombre, creado: Date.now(), respuestas: [], ...datos };
     actualizarRed(redId, (r) => ({ ...r, mensajes: [...r.mensajes, msg] }));
+    if (nube) { nube.mensajeRed(redId, msg); return; }
     if (msg.tipo === 'sos' || msg.tipo === 'ayuda') simularRespuestaRed(redId, msg);
   },
   /** Un miembro responde a una alerta (voy en camino / llamé al 123 / yo te ayudo). Tocar de nuevo la quita. */
   responderAlerta(redId: string, mensajeId: string, u: Usuario, accion: RespuestaAlerta['accion']) {
-    actualizarMensaje(redId, mensajeId, (m) => {
-      const ya = m.respuestas.some((x) => x.usuarioId === u.id && x.accion === accion);
-      return {
-        ...m,
-        respuestas: ya
-          ? m.respuestas.filter((x) => !(x.usuarioId === u.id && x.accion === accion))
-          : [...m.respuestas, { usuarioId: u.id, nombre: u.nombre, accion, creado: Date.now() }],
-      };
-    });
+    const msg = estado.redes.find((r) => r.id === redId)?.mensajes.find((m) => m.id === mensajeId);
+    const ya = !!msg?.respuestas.some((x) => x.usuarioId === u.id && x.accion === accion);
+    actualizarMensaje(redId, mensajeId, (m) => ({
+      ...m,
+      respuestas: ya
+        ? m.respuestas.filter((x) => !(x.usuarioId === u.id && x.accion === accion))
+        : [...m.respuestas, { usuarioId: u.id, nombre: u.nombre, accion, creado: Date.now() }],
+    }));
+    nube?.responderAlerta(mensajeId, accion, !ya);
   },
   /** Quien envió la alerta (o un coordinador) la marca como resuelta. */
   resolverAlerta(redId: string, mensajeId: string) {
     actualizarMensaje(redId, mensajeId, (m) => ({ ...m, resuelta: true }));
+    nube?.resolverAlerta(mensajeId);
   },
 
   // ---------- Chat privado ----------
@@ -602,20 +621,26 @@ export const acciones = {
       postId: post?.id, postTitulo: post?.titulo, mensajes: [], leido: { [yo.id]: Date.now() },
     };
     set((s) => ({ ...s, conversaciones: [conv, ...s.conversaciones] }));
+    nube?.abrirConversacion(conv.id, otroId, post?.id);
     return conv.id;
   },
   enviarPrivado(convId: string, autor: Usuario, texto: string, foto?: string) {
     const ahora = Date.now();
+    const mensaje: MensajePrivado = { id: nuevoId(), autorId: autor.id, texto, foto, creado: ahora };
     actualizarConversacion(convId, (c) => ({
       ...c,
-      mensajes: [...c.mensajes, { id: nuevoId(), autorId: autor.id, texto, foto, creado: ahora }],
+      mensajes: [...c.mensajes, mensaje],
       leido: { ...c.leido, [autor.id]: ahora },
     }));
+    if (nube) { nube.enviarPrivado(convId, mensaje); return; }
     simularRespuestaPrivada(convId, autor.id);
   },
   marcarLeida(convId: string, usuarioId: string) {
     const c = estado.conversaciones.find((x) => x.id === convId);
-    if (c && noLeidos(c, usuarioId) > 0) actualizarConversacion(convId, (x) => ({ ...x, leido: { ...x.leido, [usuarioId]: Date.now() } }));
+    if (c && noLeidos(c, usuarioId) > 0) {
+      actualizarConversacion(convId, (x) => ({ ...x, leido: { ...x.leido, [usuarioId]: Date.now() } }));
+      nube?.marcarLeida(convId);
+    }
   },
 
   // ---------- Calificaciones ----------

@@ -2,7 +2,8 @@ import { createClient, type Session } from '@supabase/supabase-js';
 import { useSyncExternalStore } from 'react';
 import { SUPABASE_KEY, SUPABASE_URL } from './config';
 import { actualizarEstado, leerEstado, registrarGanchosNube } from '../store';
-import type { Barrio, Cuenta, MotivoReporte, Post, Respuesta } from '../types';
+import type { Barrio, Conversacion, Cuenta, MensajePrivado, MensajeRed, MotivoReporte, Post, Red, Respuesta } from '../types';
+import { leerUI, nav } from '../ui';
 import { esUrl, leerBlob } from '../fotos';
 import { URL_APP } from '../marca';
 import { errorClave, errorCorreo, normalizarCorreo } from '../auth';
@@ -152,10 +153,12 @@ async function entrar(sesion: Session) {
     hashClave: '', sal: '', creado: Date.parse(p.creado_en),
   };
   actualizarEstado((s) => ({ ...s, cuentas: [...s.cuentas.filter((c) => c.id !== p.id), cuenta], sesionId: p.id }));
-  await cargarFeed();
+  await Promise.all([cargarFeed(), cargarRedes(), cargarChats()]);
+  escucharTiempoReal();
 }
 
 function salir() {
+  dejarDeEscuchar();
   uid = null;
   actualizarEstado((s) => ({ ...s, sesionId: null }));
 }
@@ -266,6 +269,173 @@ async function intentar(contexto: string, op: PromiseLike<{ error: unknown }>) {
   if (error) { mostrarError(contexto, error); void cargarFeed(); }
 }
 
+/** Igual que intentar(), pero siempre refresca las redes (el servidor puede cambiar coordinadores, etc.). */
+async function intentarRedes(contexto: string, op: PromiseLike<{ error: unknown }>) {
+  const { error } = await op;
+  if (error) mostrarError(contexto, error);
+  await cargarRedes();
+}
+
+// ---------- Etapa 2: redes de seguridad y apoyo ----------
+interface RedNube {
+  id: string; nombre: string; tipo: Red['tipo']; descripcion: string; barrio: string; privada: boolean; codigo: string | null;
+  creador: string; creado: number; total: number; miembros: Red['miembros'];
+  mensajes: (Omit<MensajeRed, 'lat' | 'lng'> & { lat: number | null; lng: number | null })[];
+}
+/** Redes que se están creando (para que un refresco no las haga desaparecer). */
+const redesEnVuelo = new Set<string>();
+
+let cargandoRedes = false;
+export async function cargarRedes() {
+  if (!uid || cargandoRedes) return;
+  cargandoRedes = true;
+  try {
+    const { data, error } = await supabase.rpc('redes_visibles');
+    if (error) return mostrarError('No se pudieron cargar las redes', error);
+    const redes: Red[] = ((data ?? []) as RedNube[]).map((r) => ({
+      id: r.id, nombre: r.nombre, tipo: r.tipo, descripcion: r.descripcion, barrioId: r.barrio, privada: r.privada,
+      codigo: r.codigo ?? '', creadorId: r.creador, creado: Number(r.creado), totalMiembros: Number(r.total),
+      miembros: r.miembros.map((m) => ({ ...m, unido: Number(m.unido) })),
+      mensajes: r.mensajes.map((m) => ({
+        ...m, creado: Number(m.creado), lat: m.lat ?? undefined, lng: m.lng ?? undefined,
+        respuestas: m.respuestas.map((x) => ({ ...x, creado: Number(x.creado) })),
+      })),
+    }));
+    const ids = new Set(redes.map((r) => r.id));
+    const pendientes = leerEstado().redes.filter((r) => redesEnVuelo.has(r.id) && !ids.has(r.id));
+    actualizarEstado((s) => ({ ...s, redes: [...pendientes, ...redes] }));
+  } finally {
+    cargandoRedes = false;
+  }
+}
+
+/** Unirse a una red (incluso privada) con su código. Devuelve el id de la red o un error. */
+export async function unirsePorCodigoNube(codigo: string): Promise<{ redId?: string; error?: string }> {
+  const { data, error } = await supabase.rpc('unirse_por_codigo', { p_codigo: codigo.trim() });
+  if (error) return { error: traducir(error.message) };
+  if (!data) return { error: 'No encontramos una red con ese código. Revisa que esté bien escrito.' };
+  await cargarRedes();
+  return { redId: data as string };
+}
+
+const punto = (lat: number, lng: number) => `SRID=4326;POINT(${lng} ${lat})`;
+
+// ---------- Etapa 2: chat privado ----------
+/** Conversación local → promesa con su id real en el servidor (puede cambiar si ya existía). */
+const convPendientes = new Map<string, Promise<string>>();
+const mensajesEnVuelo = new Set<string>();
+
+let cargandoChats = false;
+export async function cargarChats() {
+  if (!uid || cargandoChats) return;
+  cargandoChats = true;
+  try {
+    const { data: convs, error } = await supabase.rpc('mis_conversaciones');
+    if (error) return mostrarError('No se pudieron cargar los mensajes', error);
+    const filas = (convs ?? []) as { id: string; otro: string; otro_nombre: string; publicacion_id: string | null; publicacion_titulo: string | null; mi_lectura: string | null }[];
+    const ids = filas.map((c) => c.id);
+    let msgs: { id: string; conversacion_id: string; autor_id: string; texto: string; foto_path: string | null; creado_en: string }[] = [];
+    if (ids.length) {
+      const r = await supabase.from('mensajes_privados').select('id, conversacion_id, autor_id, texto, foto_path, creado_en')
+        .in('conversacion_id', ids).order('creado_en').limit(2000);
+      if (r.error) return mostrarError('No se pudieron cargar los mensajes', r.error);
+      msgs = r.data ?? [];
+    }
+    // Las fotos del chat son privadas: se entregan con enlaces firmados de 1 hora
+    const rutas = msgs.map((m) => m.foto_path).filter((x): x is string => !!x);
+    const firmadas = new Map<string, string>();
+    if (rutas.length) {
+      const { data } = await supabase.storage.from('chat').createSignedUrls(rutas, 3600);
+      for (const f of data ?? []) if (f.path && f.signedUrl) firmadas.set(f.path, f.signedUrl);
+    }
+    const miNombre = leerEstado().usuario?.nombre ?? '';
+    const anteriores = new Map(leerEstado().conversaciones.map((c) => [c.id, c]));
+    const conversaciones: Conversacion[] = filas.map((c) => {
+      const deNube = msgs.filter((m) => m.conversacion_id === c.id).map((m) => ({
+        id: m.id, autorId: m.autor_id, texto: m.texto, creado: Date.parse(m.creado_en),
+        foto: m.foto_path ? firmadas.get(m.foto_path) : undefined,
+      }));
+      const vistos = new Set(deNube.map((m) => m.id));
+      const enviando = (anteriores.get(c.id)?.mensajes ?? []).filter((m) => mensajesEnVuelo.has(m.id) && !vistos.has(m.id));
+      return {
+        id: c.id, participantes: [uid!, c.otro], nombres: { [uid!]: miNombre, [c.otro]: c.otro_nombre },
+        postId: c.publicacion_id ?? undefined, postTitulo: c.publicacion_titulo ?? undefined,
+        mensajes: [...deNube, ...enviando], leido: { [uid!]: c.mi_lectura ? Date.parse(c.mi_lectura) : 0 },
+      };
+    });
+    const vivas = new Set(conversaciones.map((c) => c.id));
+    const nuevasLocales = leerEstado().conversaciones.filter((c) => convPendientes.has(c.id) && !vivas.has(c.id));
+    actualizarEstado((s) => ({ ...s, conversaciones: [...nuevasLocales, ...conversaciones] }));
+  } finally {
+    cargandoChats = false;
+  }
+}
+
+async function abrirConversacion(convId: string, otroId: string, postId?: string) {
+  const promesa = (async () => {
+    const { data, error } = await supabase.rpc('abrir_conversacion', {
+      p_id: convId, p_otro: otroId, p_publicacion: postId && /^[0-9a-f-]{36}$/.test(postId) ? postId : null,
+    });
+    if (error) throw error;
+    const real = data as string;
+    if (real !== convId) {
+      // Ya existía una conversación con ese vecino: se usa la del servidor
+      actualizarEstado((s) => ({ ...s, conversaciones: s.conversaciones.filter((c) => c.id !== convId) }));
+      if (leerUI().chatId === convId) nav.chat(real);
+    }
+    return real;
+  })();
+  convPendientes.set(convId, promesa);
+  try { await promesa; } catch (e) { mostrarError('No se pudo abrir la conversación', e); }
+  finally { await cargarChats(); convPendientes.delete(convId); }
+}
+
+async function enviarPrivado(convId: string, m: MensajePrivado) {
+  mensajesEnVuelo.add(m.id);
+  try {
+    const real = await (convPendientes.get(convId) ?? Promise.resolve(convId));
+    let foto_path: string | null = null;
+    if (m.foto && !esUrl(m.foto)) {
+      const blob = await leerBlob(m.foto);
+      if (blob) {
+        foto_path = `${real}/${uid}-${Date.now()}.jpg`;
+        const { error } = await supabase.storage.from('chat').upload(foto_path, blob, { contentType: blob.type || 'image/jpeg' });
+        if (error) throw error;
+      }
+    }
+    const { error } = await supabase.from('mensajes_privados').insert({ id: m.id, conversacion_id: real, autor_id: uid, texto: m.texto, foto_path });
+    if (error) throw error;
+  } catch (e) {
+    mostrarError('No se pudo enviar el mensaje', e);
+  } finally {
+    mensajesEnVuelo.delete(m.id);
+    void cargarChats();
+  }
+}
+
+// ---------- Tiempo real ----------
+// Supabase avisa al instante de SOS, respuestas, miembros y mensajes nuevos (respetando RLS).
+let canal: ReturnType<typeof supabase.channel> | null = null;
+const temporizadores: Record<string, ReturnType<typeof setTimeout>> = {};
+function programar(que: 'redes' | 'chats' | 'feed') {
+  clearTimeout(temporizadores[que]);
+  temporizadores[que] = setTimeout(() => void (que === 'redes' ? cargarRedes() : que === 'chats' ? cargarChats() : cargarFeed()), 250);
+}
+function escucharTiempoReal() {
+  if (canal) return;
+  canal = supabase.channel('redcity-cambios')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'mensajes_red' }, () => programar('redes'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas_alerta' }, () => programar('redes'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'miembros_red' }, () => programar('redes'))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_privados' }, () => programar('chats'))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversaciones' }, () => programar('chats'))
+    .subscribe();
+}
+function dejarDeEscuchar() {
+  if (canal) void supabase.removeChannel(canal);
+  canal = null;
+}
+
 // ---------- Arranque ----------
 let iniciado = false;
 export async function iniciarNube() {
@@ -284,7 +454,42 @@ export async function iniciarNube() {
     reportar: (id, motivo: MotivoReporte) => void intentar('No se pudo enviar el reporte',
       supabase.from('reportes').insert({ publicacion_id: id, reportado_por: uid, motivo }).then((r) => { void cargarFeed(); return r; })),
     actualizarNombre: (nombre) => void intentar('No se pudo cambiar el nombre', supabase.from('perfiles').update({ nombre }).eq('id', uid!)),
-    cerrarSesion: () => { void supabase.auth.signOut(); uid = null; },
+    cerrarSesion: () => { dejarDeEscuchar(); void supabase.auth.signOut(); uid = null; },
+
+    // Etapa 2: redes
+    crearRed: (red) => {
+      redesEnVuelo.add(red.id);
+      void (async () => {
+        const barrio = uuidBarrio.get(red.barrioId);
+        const { error } = await supabase.from('redes').insert({
+          id: red.id, nombre: red.nombre, tipo: red.tipo, descripcion: red.descripcion, privada: red.privada,
+          barrio_id: barrio, creado_por: uid,
+        });
+        if (error) mostrarError('No se pudo crear la red', error);
+        redesEnVuelo.delete(red.id);
+        await cargarRedes(); // trae el código de invitación que genera el servidor
+      })();
+    },
+    unirseRed: (id) => void intentarRedes('No se pudo unir a la red', supabase.from('miembros_red').insert({ red_id: id, perfil_id: uid, rol: 'miembro' })),
+    salirRed: (id) => void intentarRedes('No se pudo salir de la red', supabase.from('miembros_red').delete().eq('red_id', id).eq('perfil_id', uid!)),
+    quitarMiembro: (id, quien) => void intentarRedes('No se pudo quitar al miembro', supabase.from('miembros_red').delete().eq('red_id', id).eq('perfil_id', quien)),
+    mensajeRed: (redId, m) => void intentarRedes(m.tipo === 'sos' ? '⚠️ NO SE PUDO ENVIAR EL SOS. Llama al 123' : 'No se pudo enviar el mensaje',
+      supabase.from('mensajes_red').insert({
+        id: m.id, red_id: redId, autor_id: uid, tipo: m.tipo, texto: m.texto,
+        ubicacion: m.tipo === 'sos' && m.lat !== undefined && m.lng !== undefined ? punto(m.lat, m.lng) : null,
+      })),
+    responderAlerta: (mid, accion, activo) => void intentarRedes('No se pudo enviar tu respuesta', activo
+      ? supabase.from('respuestas_alerta').insert({ mensaje_id: mid, perfil_id: uid, accion })
+      : supabase.from('respuestas_alerta').delete().eq('mensaje_id', mid).eq('perfil_id', uid!).eq('accion', accion)),
+    resolverAlerta: (mid) => void intentarRedes('No se pudo marcar como resuelta', supabase.from('mensajes_red').update({ resuelta: true }).eq('id', mid)),
+
+    // Etapa 2: chat
+    abrirConversacion: (convId, otroId, postId) => void abrirConversacion(convId, otroId, postId),
+    enviarPrivado: (convId, m) => void enviarPrivado(convId, m),
+    marcarLeida: (convId) => void (async () => {
+      const real = await (convPendientes.get(convId) ?? Promise.resolve(convId)).catch(() => convId);
+      await supabase.from('lecturas').upsert({ conversacion_id: real, perfil_id: uid, leido_en: new Date().toISOString() });
+    })(),
   });
 
   supabase.auth.onAuthStateChange((evento, sesion) => {
@@ -301,6 +506,10 @@ export async function iniciarNube() {
   fijar({ iniciando: false });
 
   // Refresco periódico del feed (cada 20 s con la app visible) y al volver a la pestaña
-  setInterval(() => { if (document.visibilityState === 'visible') void cargarFeed(); }, 20_000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void cargarFeed(); });
+  // (el tiempo real avisa al instante; esto es por si se cae la conexión en tiempo real)
+  const refrescarTodo = () => { void cargarFeed(); void cargarRedes(); void cargarChats(); };
+  setInterval(() => { if (document.visibilityState === 'visible') refrescarTodo(); }, 20_000);
+  // Las redes (SOS) se revisan más seguido: un SOS no puede depender solo del tiempo real
+  setInterval(() => { if (document.visibilityState === 'visible') void cargarRedes(); }, 10_000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescarTodo(); });
 }

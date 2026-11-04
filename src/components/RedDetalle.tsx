@@ -63,7 +63,7 @@ export function RedDetalle({ red, usuario, onCerrar }: Props) {
         {red.descripcion && <p className="muted">{red.descripcion}</p>}
 
         {!miembro ? (
-          <button className="btn primary" onClick={() => acciones.unirseRed(red.id, usuario)}>Unirme a esta red ({red.miembros.length} miembros)</button>
+          <button className="btn primary" onClick={() => acciones.unirseRed(red.id, usuario)}>Unirme a esta red ({red.totalMiembros ?? red.miembros.length} miembros)</button>
         ) : (
           <>
             {/* ---------- Botones de acción rápida ---------- */}

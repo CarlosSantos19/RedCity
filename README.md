@@ -93,11 +93,13 @@ La app está conectada a Supabase ([src/nube/](src/nube/)). La URL y la clave **
 Para montar la base de datos desde cero, en Supabase → SQL Editor ejecutar en orden:
 1. [supabase/schema.sql](supabase/schema.sql)
 2. [supabase/migraciones/0002_etapa1.sql](supabase/migraciones/0002_etapa1.sql)
+3. [supabase/migraciones/0003_etapa2_redes_chat.sql](supabase/migraciones/0003_etapa2_redes_chat.sql)
 
 | Etapa | Qué está compartido entre vecinos | Estado |
 |---|---|---|
 | 1 | Cuentas (registro, inicio de sesión, recuperar contraseña), perfiles con verificación calculada por el servidor, barrios, **publicaciones de todas las categorías, fotos, comentarios, me gusta, compartidos y reportes** | ✅ |
-| 2 | Chat privado, redes de seguridad con SOS, propuestas y pagos de servicios | Pendiente (funciona en el dispositivo) |
+| 2 | **Redes de seguridad y apoyo con SOS en tiempo real** (llega en menos de 1-2 s), respuestas "Voy en camino", códigos de invitación, coordinadores; **chat privado en tiempo real con fotos privadas** | ✅ |
+| 2b | Propuestas, contratación, pagos y calificaciones de servicios | Pendiente (funciona en el dispositivo) |
 | 3 | Negocios, historias, reels, notas, promociones, foto de perfil | Pendiente (funciona en el dispositivo) |
 | 4 | Notificaciones push y pasarela de pagos real | Pendiente |
 

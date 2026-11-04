@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Barrio, Red, TipoRed, Usuario } from '../types';
 import { acciones, alertaActiva, esMiembro } from '../store';
 import { distanciaKm } from '../geo';
+import { NUBE } from '../nube/config';
 
 interface Props {
   usuario: Usuario;
@@ -31,8 +32,9 @@ export function Redes({ usuario, redes, barrios, onAbrir }: Props) {
     return !!b && distanciaKm(usuario.lat, usuario.lng, b.lat, b.lng) <= RADIO_SUGERENCIAS_KM;
   });
 
-  function unirmeConCodigo() {
-    const r = acciones.unirsePorCodigo(codigo, usuario);
+  async function unirmeConCodigo() {
+    // En la nube el código se valida en el servidor (las redes privadas no se ven antes de entrar)
+    const r = NUBE ? await (await import('../nube/sincronizar')).unirsePorCodigoNube(codigo) : acciones.unirsePorCodigo(codigo, usuario);
     if (r.error) return setErrorCodigo(r.error);
     setErrorCodigo('');
     setCodigo('');
@@ -46,7 +48,7 @@ export function Redes({ usuario, redes, barrios, onAbrir }: Props) {
         <span className="icono-red">{TIPOS_RED[r.tipo].icono}</span>
         <span className="fila-titulo">
           <b>{r.nombre}</b>
-          <small className="muted"><br />{centro.get(r.barrioId)?.nombre} · {r.miembros.length} miembros{r.privada && ' · 🔒 privada'}</small>
+          <small className="muted"><br />{centro.get(r.barrioId)?.nombre} · {r.totalMiembros ?? r.miembros.length} miembros{r.privada && ' · 🔒 privada'}</small>
           {alertas > 0 && <small className="txt-alerta"><br />🆘 {alertas} alerta(s) activa(s)</small>}
         </span>
         {!miembro && <span className="btn primary chico" onClick={(e) => { e.stopPropagation(); acciones.unirseRed(r.id, usuario); onAbrir(r.id); }}>Unirme</span>}

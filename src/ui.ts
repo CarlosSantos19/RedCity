@@ -21,6 +21,9 @@ export function useUI(): UI {
   return useSyncExternalStore((cb) => { listeners.add(cb); return () => listeners.delete(cb); }, () => ui);
 }
 
+/** Para código fuera de React (p. ej. la sincronización con la nube). */
+export const leerUI = () => ui;
+
 export const nav = {
   post: (postId: string | null) => set({ postId }),
   red: (redId: string | null) => set({ redId }),

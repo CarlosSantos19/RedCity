@@ -227,6 +227,8 @@ export interface Red {
   miembros: MiembroRed[];
   mensajes: MensajeRed[];
   creado: number;
+  /** Total de miembros cuando no soy miembro (en ese caso no se me envía la lista, por privacidad) */
+  totalMiembros?: number;
 }
 
 /** Cuenta con credenciales. Nunca se guarda la contraseña, solo su hash con sal. */
