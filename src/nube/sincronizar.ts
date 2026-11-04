@@ -507,6 +507,34 @@ function dejarDeEscuchar() {
   canal = null;
 }
 
+// ---------- Eliminar mi cuenta (exigido por Google Play y la Ley 1581) ----------
+/** Borra mis archivos de Storage y luego mi cuenta con todos mis datos. Devuelve error o null. */
+export async function eliminarCuentaNube(): Promise<string | null> {
+  if (!uid) return 'Inicia sesión para eliminar tu cuenta.';
+  try {
+    // 1) Archivos: solo se pueden borrar por la API de Storage (no desde SQL)
+    for (const bucket of ['publicaciones', 'avatares']) {
+      const { data } = await supabase.storage.from(bucket).list(uid, { limit: 1000 });
+      const rutas = (data ?? []).map((f) => `${uid}/${f.name}`);
+      if (rutas.length) await supabase.storage.from(bucket).remove(rutas);
+    }
+    const { data: fotosChat } = await supabase.from('mensajes_privados').select('foto_path').eq('autor_id', uid).not('foto_path', 'is', null);
+    const rutasChat = (fotosChat ?? []).map((m) => m.foto_path as string);
+    if (rutasChat.length) await supabase.storage.from('chat').remove(rutasChat);
+    // 2) La cuenta y, en cascada, todos los datos personales (los pagos quedan anónimos para la contabilidad)
+    const { error } = await supabase.rpc('eliminar_mi_cuenta');
+    if (error) return traducir(error.message);
+  } catch (e) {
+    return traducir(e instanceof Error ? e.message : String(e));
+  }
+  dejarDeEscuchar();
+  await supabase.auth.signOut().catch(() => { /* la sesión ya no existe */ });
+  uid = null;
+  try { localStorage.removeItem('redcity_nube_v1'); } catch { /* sin almacenamiento */ }
+  actualizarEstado((s) => ({ ...s, sesionId: null, cuentas: [], posts: [], redes: [], conversaciones: [], pagos: [], calificaciones: [] }));
+  return null;
+}
+
 // ---------- Arranque ----------
 let iniciado = false;
 export async function iniciarNube() {

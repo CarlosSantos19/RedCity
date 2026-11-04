@@ -580,3 +580,6 @@ h1, h2, h3, h4 { margin: 0; }
   box-shadow: 0 6px 20px #0005; font-size: .88rem; }
 .toast-error button { border: none; background: none; color: #fff; font-size: 1rem; padding: 0; }
 .aviso-dispositivo { margin: .75rem 1rem 0; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: .6rem .8rem; font-size: .84rem; }
+
+.zona-peligro { border: 2px solid var(--peligro); }
+.zona-peligro h3 { color: var(--peligro); }

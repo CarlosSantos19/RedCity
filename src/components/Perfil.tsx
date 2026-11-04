@@ -3,6 +3,7 @@ import type { PostServicio, TipoDocumento, Usuario, VisibilidadFoto } from '../t
 import { MAX_OFICIOS, acciones, useEstado } from '../store';
 import { Avatar } from './Avatar';
 import { RecortarFoto } from './RecortarFoto';
+import { NUBE } from '../nube/config';
 import { hace } from '../geo';
 import { nav } from '../ui';
 import { NOMBRE_DOCUMENTO, REQUISITOS, RUBRO, cop } from '../servicios';
@@ -220,7 +221,51 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
       </section>
 
       <button className="btn danger" onClick={onSalir}>🚪 Cerrar sesión</button>
+
+      <EliminarCuenta usuario={usuario} />
     </div>
+  );
+}
+
+/** Eliminar la cuenta para siempre (Google Play lo exige; Ley 1581: derecho a la supresión). */
+function EliminarCuenta({ usuario }: { usuario: Usuario }) {
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  const [error, setError] = useState('');
+
+  async function eliminar() {
+    setBorrando(true);
+    setError('');
+    if (NUBE) {
+      const { eliminarCuentaNube } = await import('../nube/sincronizar');
+      const err = await eliminarCuentaNube();
+      if (err) { setError(err); setBorrando(false); return; }
+    } else {
+      acciones.eliminarCuentaLocal(usuario.id);
+    }
+    nav.cerrarTodo();
+  }
+
+  if (!abierto) {
+    return <button className="btn link" onClick={() => setAbierto(true)}>Eliminar mi cuenta</button>;
+  }
+  return (
+    <section className="panel zona-peligro">
+      <h3>⚠️ Eliminar mi cuenta</h3>
+      <p>Se borrarán <b>para siempre</b> tu perfil, tus publicaciones y fotos, comentarios, mensajes, calificaciones y tu participación en redes. <b>No se puede deshacer.</b></p>
+      <p className="muted">Por ley, los registros de pagos se conservan para la contabilidad, pero sin tu nombre ni tus datos. Si tienes un pago retenido, se reembolsa.</p>
+      <div className="form">
+        <label>Para confirmar, escribe <b>ELIMINAR</b>
+          <input value={texto} onChange={(e) => setTexto(e.target.value)} autoCapitalize="characters" />
+        </label>
+      </div>
+      {error && <p className="aviso peligro">{error}</p>}
+      <button className="btn danger" disabled={texto.trim().toUpperCase() !== 'ELIMINAR' || borrando} onClick={eliminar}>
+        {borrando ? 'Eliminando…' : 'Eliminar mi cuenta para siempre'}
+      </button>
+      <button className="btn link neutro" onClick={() => { setAbierto(false); setTexto(''); }}>Cancelar</button>
+    </section>
   );
 }
 

@@ -95,6 +95,10 @@ Para montar la base de datos desde cero, en Supabase → SQL Editor ejecutar en 
 2. [supabase/migraciones/0002_etapa1.sql](supabase/migraciones/0002_etapa1.sql)
 3. [supabase/migraciones/0003_etapa2_redes_chat.sql](supabase/migraciones/0003_etapa2_redes_chat.sql)
 4. [supabase/migraciones/0004_etapa2b_servicios.sql](supabase/migraciones/0004_etapa2b_servicios.sql)
+5. [supabase/migraciones/0005_eliminar_cuenta.sql](supabase/migraciones/0005_eliminar_cuenta.sql)
+6. [supabase/migraciones/0006_listar_mis_archivos.sql](supabase/migraciones/0006_listar_mis_archivos.sql)
+
+**Eliminar mi cuenta** (Perfil → al final): borra perfil, publicaciones, fotos, mensajes, calificaciones y membresías. Los pagos se conservan anónimos para la contabilidad (DIAN) y los pagos retenidos se reembolsan. Lo exigen Google Play y la Ley 1581 (derecho a la supresión).
 
 | Etapa | Qué está compartido entre vecinos | Estado |
 |---|---|---|

@@ -917,6 +917,22 @@ export const acciones = {
   },
 
   /** Borra TODO (cuentas, publicaciones, pagos) y vuelve a los datos de ejemplo. */
+  /** Demo: borra la cuenta y sus datos de este dispositivo (en la nube lo hace eliminarCuentaNube). */
+  eliminarCuentaLocal(usuarioId: string) {
+    set((s) => ({
+      ...s,
+      sesionId: null,
+      cuentas: s.cuentas.filter((c) => c.id !== usuarioId),
+      posts: s.posts.filter((p) => p.autorId !== usuarioId),
+      conversaciones: s.conversaciones.filter((c) => !c.participantes.includes(usuarioId)),
+      redes: s.redes.map((r) => ({ ...r, miembros: r.miembros.filter((m) => m.usuarioId !== usuarioId) })),
+      calificaciones: s.calificaciones.filter((c) => c.deId !== usuarioId && c.paraId !== usuarioId),
+      historias: s.historias.filter((h) => h.autorId !== usuarioId),
+      notas: s.notas.filter((n) => n.autorId !== usuarioId),
+      reels: s.reels.filter((r) => r.autorId !== usuarioId),
+      empresas: s.empresas.filter((e) => e.duenoId !== usuarioId),
+    }));
+  },
   reiniciarDemo() {
     set(() => inicial());
   },
