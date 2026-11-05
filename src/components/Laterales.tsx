@@ -6,6 +6,7 @@ import { RUBRO } from '../servicios';
 import { Reputacion } from './Estrellas';
 import { Avatar } from './Avatar';
 import { URL_APP } from '../marca';
+import { lugarDeBarrio } from '../data/colombia';
 
 export type VistaApp = 'barrio' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
 
@@ -33,14 +34,14 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
     <div className="panel-lateral">
       <div className="marca-lateral">
         <img src={`${import.meta.env.BASE_URL}icono-192.png`} alt="" />
-        <div><b>RedCity</b><small>Bogotá</small></div>
+        <div><b>RedCity</b><small>{barrio?.ciudad ?? 'Colombia'}</small></div>
       </div>
 
       <button className="tarjeta-usuario" onClick={() => onVista('perfil')}>
         <Avatar usuarioId={usuario.id} nombre={usuario.nombre} tamano="grande" />
         <span>
           <b>{usuario.nombre}</b>
-          <small>{barrio?.nombre}, {barrio?.localidad}</small>
+          <small>{barrio?.nombre}, {lugarDeBarrio(barrio)}</small>
           <small>{usuario.verificado ? '📍 Vive en el barrio ✔' : 'Sin verificar'} <Reputacion usuarioId={usuario.id} /></small>
         </span>
       </button>
@@ -84,12 +85,12 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
         </section>
       )}
 
-      <p className="lat-pie">RedCity · Bogotá<br />Tus datos protegidos por la Ley 1581 de 2012<br /><a href={`${import.meta.env.BASE_URL}privacidad.html`} target="_blank" rel="noreferrer">Privacidad</a> · <a href="mailto:redcity.soporte@gmail.com">Soporte</a></p>
+      <p className="lat-pie">RedCity · Colombia<br />Tus datos protegidos por la Ley 1581 de 2012<br /><a href={`${import.meta.env.BASE_URL}privacidad.html`} target="_blank" rel="noreferrer">Privacidad</a> · <a href="mailto:redcity.soporte@gmail.com">Soporte</a></p>
     </div>
   );
 }
 
-/** Números de emergencia de Colombia (Bogotá). */
+/** Números de emergencia nacionales de Colombia. */
 const EMERGENCIAS = [
   { numero: '123', nombre: 'Línea única de emergencias', detalle: 'Policía, bomberos, ambulancias' },
   { numero: '155', nombre: 'Línea 155', detalle: 'Orientación a mujeres víctimas de violencia' },

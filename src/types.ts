@@ -43,10 +43,12 @@ export interface Pago {
 export interface Barrio {
   id: string;
   nombre: string;
-  /** Localidad de Bogotá (al expandir: comuna/zona según la ciudad) */
+  /** Localidad (Bogotá), comuna o zona; puede ir vacía en municipios pequeños */
   localidad: string;
-  /** 'Bogotá' por ahora; el campo existe para expandir a otras ciudades */
+  /** Municipio (p. ej. "Bogotá", "Medellín", "Santiago de Cali") */
   ciudad: string;
+  /** Departamento (p. ej. "Antioquia"); los barrios semilla de Bogotá pueden no traerlo */
+  departamento?: string;
   lat: number;
   lng: number;
 }

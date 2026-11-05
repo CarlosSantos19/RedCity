@@ -4,6 +4,7 @@ import { nav, useUI } from './ui';
 import type { Categoria, Post, Promocion } from './types';
 import { ESPACIOS_PROMO, POSICION_SEGUNDO_ESPACIO, promoActiva } from './promociones';
 import { distanciaKm } from './geo';
+import { lugarDeBarrio } from './data/colombia';
 import { Onboarding } from './components/Onboarding';
 import { PostCard } from './components/PostCard';
 import { PostDetail } from './components/PostDetail';
@@ -190,7 +191,7 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>🏘️ {barrio?.nombre}</h1>
-          <p>{barrio?.localidad}, Bogotá · {usuario.nombre} {usuario.verificado ? <span className="verif">✔ verificado</span> : <span className="sin-verif">sin verificar</span>}</p>
+          <p>{lugarDeBarrio(barrio)} · {usuario.nombre} {usuario.verificado ? <span className="verif">✔ verificado</span> : <span className="sin-verif">sin verificar</span>}</p>
         </div>
         <div className="radio">
           <span>Radio</span>

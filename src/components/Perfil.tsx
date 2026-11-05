@@ -5,6 +5,7 @@ import { Avatar } from './Avatar';
 import { RecortarFoto } from './RecortarFoto';
 import { NUBE } from '../nube/config';
 import { hace } from '../geo';
+import { lugarDeBarrio } from '../data/colombia';
 import { nav } from '../ui';
 import { NOMBRE_DOCUMENTO, REQUISITOS, RUBRO, cop } from '../servicios';
 import { borrarFoto } from '../fotos';
@@ -54,7 +55,7 @@ export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: 
           <Avatar usuarioId={perfilId} nombre={nombre} tamano="grande" />
           <div>
             <h2>{nombre}{soyYo && ' (tú)'}</h2>
-            <p className="muted">{barrio ? `${barrio.nombre}, ${barrio.localidad}` : 'Bogotá'}{cuenta && ` · en RedCity ${hace(cuenta.creado).replace('hace', 'desde hace')}`}</p>
+            <p className="muted">{barrio ? `${barrio.nombre}, ${lugarDeBarrio(barrio)}` : 'Colombia'}{cuenta && ` · en RedCity ${hace(cuenta.creado).replace('hace', 'desde hace')}`}</p>
             <Reputacion usuarioId={perfilId} completo />
           </div>
         </div>
@@ -139,7 +140,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
           <Avatar usuarioId={usuario.id} nombre={usuario.nombre} tamano="grande" />
           <div>
             <h3>{usuario.nombre}</h3>
-            <p className="muted">{usuario.correo} · {barrio?.nombre}, {barrio?.localidad}</p>
+            <p className="muted">{usuario.correo} · {barrio?.nombre}, {lugarDeBarrio(barrio)}</p>
             <Reputacion usuarioId={usuario.id} completo />
           </div>
         </div>

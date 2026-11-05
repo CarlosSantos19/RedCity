@@ -18,7 +18,7 @@ Servicios, SOS vecinal, ventas de garaje y negocios a pocas cuadras de tu casa.
 
 **Descripción completa** (máx. 4.000 caracteres):
 ```
-RedCity es la red social de tu barrio en Bogotá. Aquí solo ves lo que pasa a pocas cuadras de tu casa: sin algoritmos, sin contenido de afuera y sin scroll infinito.
+RedCity es la red social de tu barrio, en cualquier parte de Colombia. Aquí solo ves lo que pasa a pocas cuadras de tu casa: sin algoritmos, sin contenido de afuera y sin scroll infinito.
 
 🧰 SERVICIOS ENTRE VECINOS
 ¿Necesitas aseo los jueves, un plomero, alguien que pasee a tu perro o un contador? Publica lo que necesitas y cuánto pagas. Los vecinos te envían propuestas, eliges a quien prefieras y pagas por la app: el dinero queda retenido hasta que confirmes que el trabajo quedó bien. Las calificaciones solo las dejan vecinos que de verdad contrataron.
@@ -48,7 +48,7 @@ La panadería, la ferretería, el taller o el profesional independiente tienen s
 • Puedes eliminar tu cuenta y tus datos cuando quieras desde tu perfil.
 • Tratamiento de datos según la Ley 1581 de 2012.
 
-RedCity está disponible por ahora en Bogotá. ¡Invita a tus vecinos: entre más seamos, más útil es tu barrio!
+RedCity funciona en los 1.122 municipios de Colombia: si tu barrio aún no está, créalo y sé su primer vecino. ¡Invita a tus vecinos: entre más seamos, más útil es tu barrio!
 ```
 
 **Imágenes:**

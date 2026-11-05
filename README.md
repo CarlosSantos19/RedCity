@@ -1,4 +1,4 @@
-# 🏘️ RedCity: micro-comunidades de Bogotá
+# 🏘️ RedCity: micro-comunidades de Colombia
 
 Una red social hiperlocal, a nivel de barrio, para colaborar con los vecinos de verdad:
 
@@ -132,7 +132,9 @@ src/
   fotos.ts              Compresión y guardado de fotos (IndexedDB en el demo)
   pwa.ts                Instalación de la app y service worker
   geo.ts                Distancias, difuminado de ubicación, GPS
-  data/bogota.ts        Localidades, barrios semilla, límites de Bogotá
+  data/bogota.ts        Localidades y barrios semilla de Bogotá
+  data/colombia.ts      Municipios (DIVIPOLA del DANE), GPS → municipio más cercano
+public/municipios.json  Los 1.122 municipios de Colombia con su departamento y coordenadas
   data/seed.ts          Publicaciones, redes y reseñas de ejemplo
   components/           Pantallas: Onboarding, PostCard, PostDetail, NewPost, MapView,
                         ServicioDetalle, MisServicios, Redes, RedDetalle, Chat, Perfil…
@@ -157,7 +159,8 @@ supabase/schema.sql     Esquema de producción con PostGIS, RLS, feed cercano, p
 - Perfil de negocio verificado para ofertas (RUT / Cámara de Comercio).
 
 **Fase 3: Expansión**
-- Medellín, Cali, Barranquilla… El modelo ya tiene `ciudad`; solo hay que cargar barrios y comunas.
+- ✅ Ya funciona en todo el país: el registro pide departamento → municipio → barrio y el GPS detecta el municipio. En cada municipio el primer vecino crea su barrio con el GPS.
+- Siguiente: cargar los barrios oficiales de las ciudades grandes (Medellín, Cali, Barranquilla…) para que aparezcan en la lista desde el primer día.
 - App nativa (Capacitor o React Native) si la versión web instalable se queda corta.
 
 ## Legal (Colombia)

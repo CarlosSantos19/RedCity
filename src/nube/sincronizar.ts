@@ -52,7 +52,7 @@ export function traducir(msg: string): string {
   if (m.includes('already registered') || m.includes('already been registered')) return 'Ya existe una cuenta con este correo. Inicia sesión.';
   if (m.includes('rate limit') || m.includes('too many')) return 'Se alcanzó el límite de intentos o de correos por hora. Espera unos minutos.';
   if (m.includes('password should be')) return 'La contraseña es muy corta.';
-  if (m.includes('database error saving new user')) return 'No se pudo crear tu perfil. Revisa que elegiste tu barrio y aceptaste el tratamiento de datos.';
+  if (m.includes('database error saving new user')) return 'No se pudo crear tu perfil. Revisa que elegiste tu barrio y aceptaste el tratamiento de datos. Si escribiste un barrio nuevo, puede que ya exista: búscalo en la lista.';
   if (m.includes('failed to fetch') || m.includes('network')) return 'Sin conexión a internet.';
   if (m.includes('jwt') || m.includes('not authenticated')) return 'Tu sesión venció. Vuelve a iniciar sesión.';
   return msg;
@@ -62,11 +62,11 @@ export function traducir(msg: string): string {
 export async function cargarBarrios() {
   const { data, error } = await supabase.rpc('listar_barrios');
   if (error) return mostrarError('No se pudieron cargar los barrios', error);
-  const barrios: Barrio[] = (data as { id: string; slug: string; nombre: string; localidad: string; ciudad: string; lat: number; lng: number }[])
+  const barrios: Barrio[] = (data as { id: string; slug: string; nombre: string; localidad: string; ciudad: string; departamento: string; lat: number; lng: number }[])
     .map((b) => {
       uuidBarrio.set(b.slug, b.id);
       slugBarrio.set(b.id, b.slug);
-      return { id: b.slug, nombre: b.nombre, localidad: b.localidad, ciudad: b.ciudad, lat: b.lat, lng: b.lng };
+      return { id: b.slug, nombre: b.nombre, localidad: b.localidad, ciudad: b.ciudad, departamento: b.departamento, lat: b.lat, lng: b.lng };
     });
   if (barrios.length) actualizarEstado((s) => ({ ...s, barrios }));
 }
@@ -79,7 +79,12 @@ export interface DatosRegistroNube {
   /** slug del barrio elegido, o vacío si crea uno nuevo */
   barrio: string;
   barrioNuevo?: string;
+  /** Localidad/comuna del barrio nuevo (opcional) */
   localidad: string;
+  /** Municipio y departamento del barrio nuevo */
+  ciudad?: string;
+  departamento?: string;
+  codigoMunicipio?: string;
   gps?: { lat: number; lng: number };
 }
 
@@ -96,6 +101,7 @@ export async function registrarEnNube(d: DatosRegistroNube): Promise<{ error?: s
       // El servidor crea el perfil con estos datos y calcula él mismo si queda verificado
       data: {
         nombre: d.nombre.trim(), barrio: d.barrio, barrio_nuevo: d.barrioNuevo ?? '', localidad: d.localidad,
+        ciudad: d.ciudad ?? '', departamento: d.departamento ?? '', codigo_municipio: d.codigoMunicipio ?? '',
         habeas: true, gps: !!d.gps, ...(d.gps ? { lat: d.gps.lat, lng: d.gps.lng } : {}),
       },
     },
