@@ -583,3 +583,9 @@ h1, h2, h3, h4 { margin: 0; }
 
 .zona-peligro { border: 2px solid var(--peligro); }
 .zona-peligro h3 { color: var(--peligro); }
+
+/* ---------- Bienvenida llamativa ---------- */
+.brand .lema { font-size: 1.45rem; font-weight: 800; color: var(--texto); line-height: 1.2; margin: .35rem 0 .5rem; }
+.brand .ventajas { list-style: none; padding: 0; margin: .9rem 0 .6rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; }
+.brand .ventajas li { background: var(--primario-claro); color: var(--primario-oscuro); font-weight: 600; font-size: .85rem; padding: .3rem .7rem; border-radius: 999px; }
+.brand .sello { font-size: .8rem; font-weight: 600; color: var(--primario); margin: 0; }

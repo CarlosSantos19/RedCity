@@ -21,7 +21,16 @@ export function Onboarding() {
       <div className="brand">
         <div className="logo">🏘️</div>
         <h1>RedCity</h1>
-        <p>La red de tu barrio, en cualquier parte de Colombia. Servicios, trueque, seguridad, ofertas y eventos a pocas cuadras. Sin algoritmos ni contenido de afuera.</p>
+        <p className="lema">Tu barrio, más unido que nunca.</p>
+        <p>Encuentra al plomero de la esquina, vende lo que ya no usas y cuídate con tus vecinos. Todo a pocas cuadras de tu casa.</p>
+        <ul className="ventajas">
+          <li>🧰 Servicios</li>
+          <li>🆘 SOS vecinal</li>
+          <li>📦 Ventas de garaje</li>
+          <li>🏢 Negocios</li>
+          <li>🔄 Trueque</li>
+        </ul>
+        <p className="sello">📍 En toda Colombia · Sin algoritmos · Gratis</p>
       </div>
 
       <div className="tabs-acceso">
