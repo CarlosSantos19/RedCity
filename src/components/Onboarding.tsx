@@ -30,7 +30,7 @@ export function Onboarding() {
           <li>🏢 Negocios</li>
           <li>🔄 Trueque</li>
         </ul>
-        <p className="sello">📍 En toda Colombia · Sin algoritmos · Gratis</p>
+        <p className="sello">📍 En toda Colombia · Tus vecinos, a un toque</p>
       </div>
 
       <div className="tabs-acceso">
