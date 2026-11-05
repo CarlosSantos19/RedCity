@@ -3,6 +3,7 @@
   "short_name": "RedCity",
   "description": "La red de tu barrio: servicios, redes de seguridad y apoyo, trueque, ofertas y eventos a pocas cuadras.",
   "lang": "es-CO",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
