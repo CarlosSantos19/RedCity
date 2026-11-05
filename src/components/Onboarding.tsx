@@ -257,7 +257,7 @@ function Registro() {
 
       <label className="check">
         <input type="checkbox" checked={habeas} onChange={(e) => setHabeas(e.target.checked)} />
-        <span>Autorizo el tratamiento de mis datos personales y de ubicación según la Ley 1581 de 2012 (Habeas Data). Mi ubicación exacta nunca se muestra a otros vecinos.</span>
+        <span>Tengo 18 años o más y autorizo el tratamiento de mis datos personales y de ubicación según la Ley 1581 de 2012 (Habeas Data) y la <a href={`${import.meta.env.BASE_URL}privacidad.html`} target="_blank" rel="noreferrer">política de privacidad</a>. Mi ubicación exacta nunca se muestra a otros vecinos.</span>
       </label>
 
       {error && <p className="aviso peligro">{error}</p>}

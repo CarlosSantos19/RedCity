@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8" />
+<title>RedCity · Imagen destacada (1024×500)</title>
+<style>
+  /* Imagen destacada para Google Play: exactamente 1024 × 500 px */
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #d91e2b 0%, #a8141f 100%);
+    color: #fff; display: flex; align-items: center; padding: 0 64px; gap: 48px; position: relative;
+  }
+  body::before { /* cuadrícula de calles sutil */
+    content: ''; position: absolute; inset: 0; opacity: .09;
+    background-image: linear-gradient(#fff 2px, transparent 2px), linear-gradient(90deg, #fff 2px, transparent 2px);
+    background-size: 64px 64px;
+  }
+  .icono { width: 200px; height: 200px; border-radius: 48px; background: #fff; display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 16px 40px #0004; position: relative; }
+  .icono svg { width: 130px; height: 130px; }
+  .texto { position: relative; }
+  h1 { font-size: 76px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+  p { font-size: 30px; margin-top: 14px; opacity: .95; line-height: 1.25; max-width: 620px; }
+  .chips { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+  .chip { background: #ffffff26; border: 1px solid #ffffff55; border-radius: 999px; padding: 7px 13px; font-size: 18px; font-weight: 600; white-space: nowrap; }
+  .chips { flex-wrap: nowrap; }
+</style>
+</head>
+<body>
+  <div class="icono">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M50 14 L88 46 H78 V86 H22 V46 H12 Z" fill="#d91e2b" />
+      <rect x="43" y="60" width="14" height="26" fill="#fff" />
+    </svg>
+  </div>
+  <div class="texto">
+    <h1>RedCity</h1>
+    <p>La red de tu barrio en Bogotá: vecinos que se ayudan, se cuidan y hacen negocios a pocas cuadras.</p>
+    <div class="chips">
+      <span class="chip">🧰 Servicios</span><span class="chip">🆘 SOS vecinal</span><span class="chip">📦 Ventas de garaje</span><span class="chip">🏢 Negocios</span>
+    </div>
+  </div>
+</body>
+</html>

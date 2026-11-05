@@ -84,7 +84,7 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
         </section>
       )}
 
-      <p className="lat-pie">RedCity · Bogotá<br />Tus datos protegidos por la Ley 1581 de 2012</p>
+      <p className="lat-pie">RedCity · Bogotá<br />Tus datos protegidos por la Ley 1581 de 2012<br /><a href={`${import.meta.env.BASE_URL}privacidad.html`} target="_blank" rel="noreferrer">Privacidad</a> · <a href="mailto:redcity.soporte@gmail.com">Soporte</a></p>
     </div>
   );
 }

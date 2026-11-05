@@ -223,6 +223,9 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
       <button className="btn danger" onClick={onSalir}>🚪 Cerrar sesión</button>
 
       <EliminarCuenta usuario={usuario} />
+      <p className="muted centro">
+        <a href={`${import.meta.env.BASE_URL}privacidad.html`} target="_blank" rel="noreferrer">Política de privacidad</a> · <a href="mailto:redcity.soporte@gmail.com">redcity.soporte@gmail.com</a>
+      </p>
     </div>
   );
 }
