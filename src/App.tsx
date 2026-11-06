@@ -246,7 +246,7 @@ export default function App() {
         </>
       )}
 
-      {vista === 'servicios' && <AvisoSoloDispositivo que="Las promociones pagadas" />}
+      {vista === 'servicios' && <AvisoSoloDispositivo que="Las promociones" />}
       <main>
         {vista === 'redes' && <Redes usuario={usuario} redes={redes} barrios={barrios} onAbrir={nav.red} />}
         {vista === 'mensajes' && <Bandeja usuario={usuario} />}

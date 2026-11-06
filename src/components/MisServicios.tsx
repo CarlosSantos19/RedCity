@@ -1,5 +1,5 @@
 import type { Pago, Post, PostServicio, Usuario } from '../types';
-import { COMISION, ESTADOS, RUBRO, cop } from '../servicios';
+import { COMISION, ESTADOS, PAGOS_EN_APP, RUBRO, cop } from '../servicios';
 import { useEstado } from '../store';
 import { PLAN, promoActiva } from '../promociones';
 
@@ -37,7 +37,7 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
 
   return (
     <div className="feed">
-      <section className="panel">
+      {PAGOS_EN_APP && <section className="panel">
         <h3>📈 Panel de la plataforma <small className="muted">(demo)</small></h3>
         <div className="stats">
           <div><b>{cop(suma(liberados, 'valor'))}</b><span>Movido en servicios</span></div>
@@ -48,7 +48,7 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
           <div><b>{promociones.filter((p) => promoActiva(p)).length}</b><span>Promociones activas</span></div>
         </div>
         <small className="muted">Las comisiones solo se cobran cuando el cliente confirma que el servicio se realizó. Los ingresos por promociones incluyen las de ejemplo del demo.</small>
-      </section>
+      </section>}
 
       <section className="panel">
         <h3>📣 Mis promociones ({misPromos.length})</h3>
@@ -58,7 +58,7 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
             <span>{PLAN[pr.plan].icono}</span>
             <span className="fila-titulo">
               {tituloDe(pr.postId)}
-              <small className="muted"><br />Plan {PLAN[pr.plan].nombre} · {pr.vistas} vistas · {pr.clics} clics · pagaste {cop(pr.total)}</small>
+              <small className="muted"><br />Plan {PLAN[pr.plan].nombre} · {pr.vistas} vistas · {pr.clics} clics{pr.total > 0 && ` · pagaste ${cop(pr.total)}`}</small>
             </span>
             <span className={`estado ${promoActiva(pr) ? 'estado-completada' : ''}`}>{promoActiva(pr) ? 'Activa' : pr.estado === 'detenida' ? 'Detenida' : 'Terminada'}</span>
           </button>
@@ -87,16 +87,18 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
       </section>
 
       <section className="panel">
-        <h3>💳 Mis pagos ({misPagos.length})</h3>
-        {misPagos.length === 0 && <p className="muted">Aún no hay pagos.</p>}
+        <h3>{PAGOS_EN_APP ? '💳 Mis pagos' : '✅ Servicios realizados'} ({misPagos.length})</h3>
+        {misPagos.length === 0 && <p className="muted">{PAGOS_EN_APP ? 'Aún no hay pagos.' : 'Cuando confirmes un servicio, o te confirmen uno, aparecerá aquí.'}</p>}
         {misPagos.map((p) => (
           <button key={p.id} className="fila-servicio" onClick={() => onAbrir(p.postId)}>
             <span>{p.clienteId === usuario.id ? '⬆️' : '⬇️'}</span>
             <span className="fila-titulo">
               {p.titulo}
-              <small className="muted"><br />Cliente pagó {cop(p.total)} (servicio {cop(p.valor)} + transacción {cop(p.pasarela)}) · comisión {cop(p.comision)} · {p.proveedor} recibe {cop(p.neto)}</small>
+              <small className="muted"><br />{p.comision > 0 || p.pasarela > 0
+                ? <>Cliente pagó {cop(p.total)} (servicio {cop(p.valor)} + transacción {cop(p.pasarela)}) · comisión {cop(p.comision)} · {p.proveedor} recibe {cop(p.neto)}</>
+                : <>{p.clienteId === usuario.id ? `Con ${p.proveedor}` : 'Lo hiciste tú'} · valor acordado {cop(p.valor)} · pagado directamente</>}</small>
             </span>
-            <span className={`estado pago-${p.estado}`}>{{ retenido: 'Retenido', liberado: 'Pagado', reembolsado: 'Reembolsado' }[p.estado]}</span>
+            <span className={`estado pago-${p.estado}`}>{{ retenido: 'Retenido', liberado: PAGOS_EN_APP ? 'Pagado' : 'Realizado', reembolsado: 'Reembolsado' }[p.estado]}</span>
           </button>
         ))}
       </section>

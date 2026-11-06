@@ -33,7 +33,7 @@ export function EstadisticasPromo({ promo }: { promo: Promocion }) {
         <div><b>{promo.clics}</b><span>La abrieron ({ctr}%)</span></div>
         <div><b>{dias} d</b><span>Restantes · {promo.alcanceKm} km</span></div>
       </div>
-      <button className="btn link" onClick={() => { if (confirm('¿Detener la promoción? El valor pagado no se reembolsa.')) acciones.detenerPromocion(promo.id); }}>
+      <button className="btn link" onClick={() => { if (confirm(promo.total > 0 ? '¿Detener la promoción? El valor pagado no se reembolsa.' : '¿Detener la promoción?')) acciones.detenerPromocion(promo.id); }}>
         Detener promoción
       </button>
     </div>
@@ -68,7 +68,7 @@ function ModalPromocionar({ post, usuario, onCerrar }: { post: Post; usuario: Us
             <button key={p.id} className={`plan ${p.id === planId ? 'activo' : ''}`} onClick={() => setPlanId(p.id)}>
               <span className="plan-icono">{p.icono}</span>
               <b>{p.nombre}</b>
-              <span className="plan-precio">{cop(p.precio)}</span>
+              <span className="plan-precio">{p.precio > 0 ? cop(p.precio) : 'Gratis'}</span>
               <small>{p.dias} días · {p.alcanceKm} km</small>
               <small className="muted">~{alcanzados(p.alcanceKm)} barrio(s)</small>
             </button>
@@ -85,16 +85,16 @@ function ModalPromocionar({ post, usuario, onCerrar }: { post: Post; usuario: Us
           y se turnan entre los anunciantes, así que nadie llena el feed de publicidad.
         </div>
 
-        <div className="desglose">
+        {costo.total > 0 && <div className="desglose">
           <div><span>Plan {plan.nombre} ({plan.dias} días)</span><b>{cop(costo.precio)}</b></div>
           <div className="muted"><span>Costo de la transacción*</span><span>+ {cop(costo.pasarela)}</span></div>
           <div className="total"><span>Total</span><b>{cop(costo.total)}</b></div>
           <small className="muted">* Estimado; depende del medio de pago. Demo: el pago es simulado.</small>
-        </div>
+        </div>}
 
         {error && <p className="aviso peligro">{error}</p>}
-        <button className="btn promo" onClick={pagar}>💳 Pagar {cop(costo.total)} y promocionar</button>
-        <small className="muted">Las alertas de seguridad no se pueden promocionar. Las promociones que infrinjan las normas de la comunidad se retiran sin reembolso.</small>
+        <button className="btn promo" onClick={pagar}>{costo.total > 0 ? `💳 Pagar ${cop(costo.total)} y promocionar` : '📣 Promocionar gratis'}</button>
+        <small className="muted">Las alertas de seguridad no se pueden promocionar. Las promociones que infrinjan las normas de la comunidad se retiran{costo.total > 0 && ' sin reembolso'}.</small>
       </div>
     </div>
   );

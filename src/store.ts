@@ -153,6 +153,7 @@ export interface GanchosNube {
   contratarOferta(ofertaId: string, contratoId: string): void;
   pagar(postId: string): void;
   confirmarServicio(postId: string): void;
+  registrarServicio(postId: string): void;
   cancelarServicio(postId: string): void;
   calificar(pagoId: string, estrellas: number, comentario: string): void;
 }
@@ -546,6 +547,35 @@ export const acciones = {
       }),
     }));
     nube?.confirmarServicio(postId);
+  },
+  /**
+   * Sin pagos en la app: el cliente confirma que el servicio se realizó (lo pagó directamente al vecino).
+   * Queda un registro con el valor acordado, sin comisión, que habilita las calificaciones.
+   */
+  registrarServicio(postId: string) {
+    const post = estado.posts.find((p): p is PostServicio => p.id === postId && p.categoria === 'servicio');
+    const elegido = post?.postulaciones.find((x) => x.id === post.asignadoId);
+    if (!post || !elegido || (post.estado !== 'asignada' && post.estado !== 'pagada')) return;
+    const siguiente = (p: PostServicio): PostServicio => ({ ...p, realizados: p.realizados + 1, estado: p.frecuencia === 'una-vez' ? 'completada' : 'asignada' });
+    if (nube) {
+      // En la nube el registro (y su id) lo crea el servidor; aquí solo se refleja el estado mientras responde
+      actualizarServicio(postId, siguiente);
+      nube.registrarServicio(postId);
+      return;
+    }
+    const retenido = estado.pagos.some((pg) => pg.postId === postId && pg.estado === 'retenido');
+    const registro: Pago = {
+      id: nuevoId(), postId, titulo: post.titulo, clienteId: post.autorId,
+      proveedorId: elegido.proveedorId, proveedor: elegido.proveedor,
+      ...desglose(elegido.precio), estado: 'liberado', creado: Date.now(),
+    };
+    set((s) => ({
+      ...s,
+      pagos: retenido
+        ? s.pagos.map((pg) => (pg.postId === postId && pg.estado === 'retenido' ? { ...pg, estado: 'liberado' } : pg))
+        : [registro, ...s.pagos],
+      posts: s.posts.map((p) => (p.id === postId && p.categoria === 'servicio' ? siguiente(p) : p)),
+    }));
   },
   /** Cancela el servicio; si había un pago retenido se reembolsa completo. */
   cancelarServicio(postId: string) {

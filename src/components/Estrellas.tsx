@@ -14,7 +14,7 @@ export function EstrellasFijas({ valor }: { valor: number }) {
   return <span className="estrellas" aria-label={`${valor} de 5 estrellas`}>{'★'.repeat(valor)}<span className="apagadas">{'★'.repeat(5 - valor)}</span></span>;
 }
 
-/** Formulario para calificar después de un servicio pagado y confirmado. */
+/** Formulario para calificar después de un servicio confirmado. */
 export function Calificar({ pagoId, usuario, aQuien }: { pagoId: string; usuario: Usuario; aQuien: string }) {
   const { calificaciones } = useEstado();
   const [estrellas, setEstrellas] = useState(0);
@@ -37,7 +37,7 @@ export function Calificar({ pagoId, usuario, aQuien }: { pagoId: string; usuario
       <button className="btn primary" disabled={estrellas === 0} onClick={() => setError(acciones.calificar(pagoId, usuario, estrellas, comentario) ?? '')}>
         Publicar calificación
       </button>
-      <small className="muted">Solo pueden calificar quienes pagaron el servicio por la app, así las reseñas son reales.</small>
+      <small className="muted">Solo pueden calificar quienes contrataron el servicio por la app, así las reseñas son reales.</small>
     </div>
   );
 }

@@ -21,7 +21,7 @@ Servicios, SOS vecinal, ventas de garaje y negocios a pocas cuadras de tu casa.
 RedCity es la red social de tu barrio, en cualquier parte de Colombia. Aquí solo ves lo que pasa a pocas cuadras de tu casa: sin algoritmos, sin contenido de afuera y sin scroll infinito.
 
 🧰 SERVICIOS ENTRE VECINOS
-¿Necesitas aseo los jueves, un plomero, alguien que pasee a tu perro o un contador? Publica lo que necesitas y cuánto pagas. Los vecinos te envían propuestas, eliges a quien prefieras y pagas por la app: el dinero queda retenido hasta que confirmes que el trabajo quedó bien. Las calificaciones solo las dejan vecinos que de verdad contrataron.
+¿Necesitas aseo los jueves, un plomero, alguien que pasee a tu perro o un contador? Publica lo que necesitas y cuánto pagas. Los vecinos te envían propuestas, eliges a quien prefieras y acuerdan el pago directamente, sin comisiones. Cuando el trabajo queda bien lo confirmas, y las calificaciones solo las dejan vecinos que de verdad contrataron.
 
 🆘 REDES DE SEGURIDAD Y APOYO
 Crea la red de tu cuadra, tu edificio o tu conjunto. Con el botón SOS (manteniéndolo presionado 3 segundos) alertas a todos los miembros con tu ubicación, y ellos responden "Voy en camino" o "Llamé al 123". También puedes avisar "Llegué bien" o pedir ayuda: un acompañamiento a la EPS, el mercado para un vecino mayor…
@@ -78,11 +78,11 @@ Google necesita entrar para revisarla. Elige **"Todas o algunas funciones están
 - Categoría: **Redes sociales / Comunicación**
 - ¿Los usuarios pueden interactuar o intercambiar contenido? **Sí** (chat, publicaciones, fotos)
 - ¿Se comparte la ubicación del usuario con otros? **Sí** (aproximada en publicaciones; exacta solo en un SOS dentro de una red privada que el usuario elige)
-- ¿Permite compras digitales? **No** (los pagos son por servicios físicos entre vecinos)
+- ¿Permite compras digitales? **No** (la app no maneja pagos; los vecinos pagan directamente los servicios físicos)
 - Violencia, sexo, drogas, apuestas, lenguaje obsceno: **No**
 
 ### Público objetivo
-**18 años o más.** Hay servicios con pago, chat privado y ubicación, así que no es para menores.
+**18 años o más.** Hay contratación de servicios, chat privado y ubicación, así que no es para menores.
 
 ### Seguridad de los datos
 **¿La app recopila o comparte datos del usuario?** Sí, los recopila. **No los comparte con terceros**: Supabase y GitHub son proveedores de servicio que procesan los datos en nombre de RedCity, y Google no los cuenta como "compartir".
@@ -99,9 +99,8 @@ Google necesita entrar para revisarla. Elige **"Todas o algunas funciones están
 | Fotos | Sí | No | Funcionalidad (publicaciones, perfil, chat) |
 | Mensajes en la app | Sí | No | Funcionalidad (chat privado) |
 | Otro contenido generado por el usuario | Sí | No | Funcionalidad (publicaciones, comentarios) |
-| Historial de compras | Sí | No | Funcionalidad (pagos de servicios) |
 | Interacciones en la app | Sí | No | Funcionalidad (me gusta, guardados) |
-| Información financiera / de tarjeta | **No** (la maneja la pasarela de pagos) | — | — |
+| Información financiera / de tarjeta | **No** (la app no procesa pagos) | — | — |
 
 ### Eliminación de la cuenta
 - Dentro de la app: **Perfil → Eliminar mi cuenta**.

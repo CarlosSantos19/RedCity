@@ -597,6 +597,7 @@ export async function iniciarNube() {
     },
     pagar: (id) => void servicio('No se pudo procesar el pago', () => supabase.rpc('pagar_servicio', { p_publicacion: id })),
     confirmarServicio: (id) => void servicio('No se pudo confirmar el servicio', () => supabase.rpc('confirmar_servicio', { p_publicacion: id })),
+    registrarServicio: (id) => void servicio('No se pudo confirmar el servicio', () => supabase.rpc('registrar_servicio', { p_publicacion: id })),
     cancelarServicio: (id) => void servicio('No se pudo cancelar', () => supabase.rpc('cancelar_servicio', { p_publicacion: id })),
     calificar: (pagoId, estrellas, comentario) => void servicio('No se pudo guardar tu calificación', () => supabase.rpc('calificar', { p_pago: pagoId, p_estrellas: estrellas, p_comentario: comentario })),
 

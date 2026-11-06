@@ -50,7 +50,7 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
         {item('barrio', '📰', 'Mi barrio')}
         {item('redes', '🤝', 'Redes de seguridad y apoyo', conAlerta && <i className="lat-alerta">🆘</i>)}
         {item('mensajes', '💬', 'Mensajes', sinLeer > 0 && <i className="lat-contador">{sinLeer}</i>)}
-        {item('servicios', '💼', 'Servicios y pagos')}
+        {item('servicios', '💼', 'Mis servicios')}
         {item('perfil', '👤', 'Mi perfil')}
         <button className="lat-item" onClick={onNegocios}><span className="lat-icono">🏢</span>Negocios del barrio</button>
         <button className="lat-item" onClick={onReels}><span className="lat-icono">🎬</span>Reels</button>

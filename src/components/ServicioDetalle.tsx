@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Postulacion, PostServicio, Usuario } from '../types';
 import { acciones, nuevoId, useEstado } from '../store';
-import { ESTADOS, FRECUENCIAS, NOMBRE_DOCUMENTO, RUBRO, cop, desglose, documentosFaltantes, requiereFoto } from '../servicios';
+import { ESTADOS, FRECUENCIAS, NOMBRE_DOCUMENTO, PAGOS_EN_APP, RUBRO, cop, desglose, documentosFaltantes, requiereFoto } from '../servicios';
 import { Avatar } from './Avatar';
 import { nav } from '../ui';
 import { Desglose } from './Desglose';
@@ -43,6 +43,7 @@ export function ServicioDetalle({ post, usuario }: Props) {
 
 function Oferta({ post, usuario, mio }: { post: PostServicio; usuario: Usuario; mio: boolean }) {
   if (mio) {
+    if (!PAGOS_EN_APP) return <p className="muted">Esta es tu oferta. Los vecinos te contratarán o te escribirán por privado; el pago lo acuerdan directamente.</p>;
     return post.valor > 0
       ? <><p className="muted">Esta es tu oferta. Cada vez que un vecino te contrate por la app:</p><Desglose valor={post.valor} quien="proveedor" /></>
       : <p className="muted">Esta es tu oferta. Los vecinos te escribirán por privado.</p>;
@@ -50,11 +51,13 @@ function Oferta({ post, usuario, mio }: { post: PostServicio; usuario: Usuario; 
   if (post.valor === 0) return <p className="muted">Precio a convenir: escríbele por privado para cotizar.</p>;
   return (
     <>
-      <Desglose valor={post.valor} quien="cliente" />
+      {PAGOS_EN_APP && <Desglose valor={post.valor} quien="cliente" />}
       <button className="btn primary" onClick={() => nav.post(acciones.contratarOferta(post, usuario))}>
         Contratar a {post.autor}
       </button>
-      <small className="muted">Pagas por la app y el dinero queda retenido hasta que confirmes que el trabajo quedó bien.</small>
+      <small className="muted">{PAGOS_EN_APP
+        ? 'Pagas por la app y el dinero queda retenido hasta que confirmes que el trabajo quedó bien.'
+        : `Acuerdas con ${post.autor} el horario y el pago (efectivo, Nequi, transferencia). RedCity no cobra comisión.`}</small>
     </>
   );
 }
@@ -87,7 +90,17 @@ function MiNecesidad({ post, elegido, usuario }: { post: PostServicio; elegido?:
         </>
       )}
 
-      {elegido && post.estado === 'asignada' && (
+      {elegido && post.estado === 'asignada' && !PAGOS_EN_APP && (
+        <>
+          <p>Elegiste a <button className="enlace-nombre" onClick={() => nav.perfil(elegido.proveedorId)}><b>{elegido.proveedor}</b></button> por <b className="precio">{cop(elegido.precio)}</b>.
+            {post.realizados > 0 ? ` Ya lo ha hecho ${post.realizados} ${post.realizados === 1 ? 'vez' : 'veces'}.` : ''}</p>
+          <p className="aviso">🤝 Coordinen por privado el horario y el pago, que se hace directamente entre ustedes (efectivo, Nequi, transferencia). RedCity no cobra comisión.</p>
+          <button className="btn primary" onClick={() => acciones.registrarServicio(post.id)}>✔ Confirmar que el servicio se realizó</button>
+          <small className="muted">Al confirmar, ambos pueden calificarse y la reseña queda en el perfil de {elegido.proveedor}.</small>
+        </>
+      )}
+
+      {elegido && post.estado === 'asignada' && PAGOS_EN_APP && (
         <>
           <p>Elegiste a <button className="enlace-nombre" onClick={() => nav.perfil(elegido.proveedorId)}><b>{elegido.proveedor}</b></button>.
             {post.realizados > 0 && ' Paga el siguiente servicio cuando quieras programarlo.'}</p>
@@ -99,8 +112,10 @@ function MiNecesidad({ post, elegido, usuario }: { post: PostServicio; elegido?:
 
       {elegido && post.estado === 'pagada' && (
         <>
-          <p className="aviso">🔒 Tu pago de <b>{cop(desglose(elegido.precio).total)}</b> está retenido. Cuando <b>{elegido.proveedor}</b> termine, confirma para liberarlo.</p>
-          <button className="btn primary" onClick={() => acciones.confirmarServicio(post.id)}>✔ Confirmar que el servicio se realizó</button>
+          <p className="aviso">{PAGOS_EN_APP
+            ? <>🔒 Tu pago de <b>{cop(desglose(elegido.precio).total)}</b> está retenido. Cuando <b>{elegido.proveedor}</b> termine, confirma para liberarlo.</>
+            : <>Servicio en curso con <b>{elegido.proveedor}</b>. Cuando termine, confírmalo aquí.</>}</p>
+          <button className="btn primary" onClick={() => (PAGOS_EN_APP ? acciones.confirmarServicio(post.id) : acciones.registrarServicio(post.id))}>✔ Confirmar que el servicio se realizó</button>
         </>
       )}
 
@@ -112,11 +127,11 @@ function MiNecesidad({ post, elegido, usuario }: { post: PostServicio; elegido?:
         <button className="btn secondary" onClick={() => escribirA(usuario, elegido.proveedorId, elegido.proveedor, post)}>💬 Escribir a {elegido.proveedor}</button>
       )}
 
-      {post.estado === 'cancelada' && <p className="muted">Servicio cancelado. Si había un pago retenido, se reembolsó completo.</p>}
+      {post.estado === 'cancelada' && <p className="muted">Servicio cancelado.{PAGOS_EN_APP && ' Si había un pago retenido, se reembolsó completo.'}</p>}
 
       {puedeCancelar && (
         <button className="btn link" onClick={() => { if (confirm('¿Cancelar este servicio?')) acciones.cancelarServicio(post.id); }}>
-          Cancelar servicio{post.estado === 'pagada' && ' y pedir reembolso'}
+          Cancelar servicio{PAGOS_EN_APP && post.estado === 'pagada' && ' y pedir reembolso'}
         </button>
       )}
     </>
@@ -135,7 +150,7 @@ function Postularse({ post, usuario, miPostulacion }: { post: PostServicio; usua
   if (elegido) {
     return (
       <>
-        <p className="aviso">🎉 ¡{post.autor} te eligió! Coordinen por privado. Recibirás el pago cuando confirme el servicio.</p>
+        <p className="aviso">🎉 ¡{post.autor} te eligió! Coordinen por privado. {PAGOS_EN_APP ? 'Recibirás el pago cuando confirme el servicio.' : `El pago (${cop(miPostulacion!.precio)}) te lo hace directamente; RedCity no cobra comisión.`}</p>
         <button className="btn secondary" onClick={() => escribirA(usuario, post.autorId, post.autor, post)}>💬 Escribir a {post.autor}</button>
         {pagoRecibido && <Calificar pagoId={pagoRecibido.id} usuario={usuario} aQuien={post.autor} />}
       </>
@@ -170,7 +185,7 @@ function Postularse({ post, usuario, miPostulacion }: { post: PostServicio; usua
       <label>Mensaje para {post.autor}
         <textarea rows={2} value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Cuéntale tu experiencia y disponibilidad" />
       </label>
-      {valor > 0 && <Desglose valor={valor} quien="proveedor" />}
+      {valor > 0 && PAGOS_EN_APP && <Desglose valor={valor} quien="proveedor" />}
       <button
         className="btn primary"
         disabled={valor <= 0}

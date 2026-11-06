@@ -1,8 +1,8 @@
 import type { Categoria, PlanPromocionId, Post, Promocion } from './types';
-import { PASARELA } from './servicios';
+import { PAGOS_EN_APP, PASARELA } from './servicios';
 
 /**
- * Promociones: la ÚNICA forma pagada de ganar visibilidad. Reglas para no romper
+ * Promociones: la ÚNICA forma de ganar visibilidad (gratis mientras RedCity no maneje pagos). Reglas para no romper
  * el principio de "feed sin algoritmo":
  * - Siempre marcadas como "Promocionado".
  * - Máximo 2 espacios en el feed (arriba y después de 5 publicaciones normales).
@@ -19,10 +19,12 @@ export interface PlanPromocion {
   precio: number;
 }
 
+const precio = (cop: number) => (PAGOS_EN_APP ? cop : 0);
+
 export const PLANES: PlanPromocion[] = [
-  { id: 'cuadra', nombre: 'Cuadra', icono: '🏠', dias: 3, alcanceKm: 1, precio: 5000 },
-  { id: 'barrio', nombre: 'Barrio', icono: '🏘️', dias: 7, alcanceKm: 2, precio: 15000 },
-  { id: 'localidad', nombre: 'Localidad', icono: '🏙️', dias: 14, alcanceKm: 5, precio: 40000 },
+  { id: 'cuadra', nombre: 'Cuadra', icono: '🏠', dias: 3, alcanceKm: 1, precio: precio(5000) },
+  { id: 'barrio', nombre: 'Barrio', icono: '🏘️', dias: 7, alcanceKm: 2, precio: precio(15000) },
+  { id: 'localidad', nombre: 'Localidad', icono: '🏙️', dias: 14, alcanceKm: 5, precio: precio(40000) },
 ];
 
 export const PLAN: Record<PlanPromocionId, PlanPromocion> = Object.fromEntries(PLANES.map((p) => [p.id, p])) as Record<PlanPromocionId, PlanPromocion>;
@@ -34,7 +36,7 @@ export const POSICION_SEGUNDO_ESPACIO = 5;
 export const PROMOCIONABLES: Categoria[] = ['evento', 'garaje', 'oferta', 'servicio', 'trueque'];
 
 export function costoPromocion(precio: number) {
-  const pasarela = Math.round(precio * PASARELA.porcentaje + PASARELA.fijo);
+  const pasarela = precio > 0 ? Math.round(precio * PASARELA.porcentaje + PASARELA.fijo) : 0;
   return { precio, pasarela, total: precio + pasarela };
 }
 

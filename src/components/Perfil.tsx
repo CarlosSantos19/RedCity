@@ -99,7 +99,7 @@ export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: 
         )}
 
         <h4>Reseñas verificadas ({resenas.length})</h4>
-        {resenas.length === 0 && <p className="muted">Todavía no tiene reseñas. Las reseñas solo las dejan vecinos que pagaron un servicio por la app.</p>}
+        {resenas.length === 0 && <p className="muted">Todavía no tiene reseñas. Las reseñas solo las dejan vecinos que contrataron un servicio por la app.</p>}
         {resenas.map((r) => (
           <div key={r.id} className="respuesta">
             <EstrellasFijas valor={r.estrellas} /> <b>{r.deNombre}</b> <span className="muted">{hace(r.creado)}</span>
@@ -258,7 +258,7 @@ function EliminarCuenta({ usuario }: { usuario: Usuario }) {
     <section className="panel zona-peligro">
       <h3>⚠️ Eliminar mi cuenta</h3>
       <p>Se borrarán <b>para siempre</b> tu perfil, tus publicaciones y fotos, comentarios, mensajes, calificaciones y tu participación en redes. <b>No se puede deshacer.</b></p>
-      <p className="muted">Por ley, los registros de pagos se conservan para la contabilidad, pero sin tu nombre ni tus datos. Si tienes un pago retenido, se reembolsa.</p>
+      <p className="muted">Los registros de servicios realizados se conservan sin tu nombre ni tus datos, para no borrar las reseñas de los demás vecinos.</p>
       <div className="form">
         <label>Para confirmar, escribe <b>ELIMINAR</b>
           <input value={texto} onChange={(e) => setTexto(e.target.value)} autoCapitalize="characters" />

@@ -1,11 +1,19 @@
 import type { EstadoServicio, Frecuencia, TipoDocumento, Usuario } from './types';
 
 /**
- * Comisión de la plataforma sobre cada servicio pagado por la app.
+ * ¿RedCity maneja los pagos de los servicios? Por ahora NO: los vecinos acuerdan y pagan directamente
+ * (efectivo, Nequi, transferencia) y RedCity no cobra comisión. La app solo registra que el servicio
+ * se realizó, para que ambos puedan calificarse. Para activar pagos con comisión más adelante:
+ * poner true, integrar una pasarela real y ajustar la configuración del servidor (migración 0008).
+ */
+export const PAGOS_EN_APP = false;
+
+/**
+ * Comisión de la plataforma sobre cada servicio pagado por la app (solo si PAGOS_EN_APP).
  * Se descuenta del valor que recibe el proveedor: el cliente paga $100.000,
  * el proveedor recibe $98.000 y RedCity se queda con $2.000.
  */
-export const COMISION = 0.02;
+export const COMISION = PAGOS_EN_APP ? 0.02 : 0;
 
 /**
  * Costo de la pasarela de pagos (PSE / Nequi / tarjeta), cobrado al CLIENTE aparte del valor
@@ -13,7 +21,7 @@ export const COMISION = 0.02;
  * ⚠️ VALORES ESTIMADOS DE REFERENCIA: reemplazar por la tarifa real contratada
  * (cada pasarela cobra distinto según el medio de pago, más IVA).
  */
-export const PASARELA = { porcentaje: 0.03, fijo: 800 };
+export const PASARELA = PAGOS_EN_APP ? { porcentaje: 0.03, fijo: 800 } : { porcentaje: 0, fijo: 0 };
 
 export type GrupoId = 'hogar' | 'comercio' | 'profesional';
 
@@ -73,7 +81,7 @@ export const UNIDADES = ['por servicio', 'por día', 'por hora', 'por visita', '
 export const ESTADOS: Record<EstadoServicio, string> = {
   abierta: 'Recibiendo propuestas',
   asignada: 'Proveedor elegido',
-  pagada: 'Pago retenido',
+  pagada: PAGOS_EN_APP ? 'Pago retenido' : 'En curso',
   completada: 'Completado',
   cancelada: 'Cancelado',
 };
