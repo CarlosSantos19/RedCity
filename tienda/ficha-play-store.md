@@ -25,7 +25,7 @@ RedCity es la red social de tu barrio, en cualquier parte de Colombia. Aquí sol
 
 🆘 REDES DE SEGURIDAD Y APOYO
 Crea la red de tu cuadra, tu edificio o tu conjunto. Con el botón SOS (manteniéndolo presionado 3 segundos) alertas a todos los miembros con tu ubicación, y ellos responden "Voy en camino" o "Llamé al 123". También puedes avisar "Llegué bien" o pedir ayuda: un acompañamiento a la EPS, el mercado para un vecino mayor…
-RedCity no reemplaza a las autoridades: en una emergencia llama siempre primero al 123.
+Por ahora la alerta llega a quienes tienen la app abierta. RedCity no reemplaza a las autoridades: en una emergencia llama siempre primero al 123.
 
 📦 VENTAS DE GARAJE
 Vende lo que ya no usas: publica tus artículos con foto y precio, tus vecinos los apartan y te escriben por privado.
@@ -38,7 +38,7 @@ Vende lo que ya no usas: publica tus artículos con foto y precio, tus vecinos l
 • Me gusta, comentar, compartir y guardar
 
 🔒 TU PRIVACIDAD PRIMERO
-• Tu ubicación exacta nunca se muestra: las publicaciones aparecen a ±150 m.
+• En las publicaciones tu ubicación exacta no se muestra: aparecen a ±150 m. Solo se comparte si envías un SOS, con los miembros de tu red.
 • Puedes bloquear y reportar a cualquier vecino.
 • Los vecinos se verifican por GPS, para confirmar que viven en el barrio.
 • Puedes eliminar tu cuenta y tus datos cuando quieras desde tu perfil.

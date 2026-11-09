@@ -23,7 +23,7 @@ export const MOTIVOS: Record<MotivoReporte, string> = {
   falso: 'Información falsa',
   discriminacion: 'Discriminación o estigmatización',
   ofensivo: 'Contenido ofensivo',
-  peligroso: 'Pone en riesgo a alguien',
+  peligroso: 'Pone en riesgo a alguien o a un menor',
   otro: 'Otro motivo',
 };
 
