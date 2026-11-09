@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Postulacion, PostServicio, Usuario } from '../types';
 import { acciones, nuevoId, useEstado } from '../store';
-import { ESTADOS, FRECUENCIAS, NOMBRE_DOCUMENTO, PAGOS_EN_APP, RUBRO, cop, desglose, documentosFaltantes, requiereFoto } from '../servicios';
+import { ESTADOS, FRECUENCIAS, NOMBRE_DOCUMENTO, PAGOS_EN_APP, RUBRO, cop, desglose, documentosFaltantes, requiereFoto, rubroPausado, sinRevisionDeIdentidad } from '../servicios';
 import { Avatar } from './Avatar';
 import { nav } from '../ui';
 import { Desglose } from './Desglose';
@@ -32,7 +32,13 @@ export function ServicioDetalle({ post, usuario }: Props) {
         {post.realizados > 0 && <span className="muted"> · realizado {post.realizados} {post.realizados === 1 ? 'vez' : 'veces'}</span>}
       </div>
 
-      {post.modo === 'ofrezco'
+      {sinRevisionDeIdentidad(post.rubro) && (
+        <p className="aviso">⚠️ RedCity no verifica la identidad de quienes ofrecen este servicio. Pide referencias y documentos antes de dejar entrar a alguien a tu casa.</p>
+      )}
+
+      {rubroPausado(post.rubro) && !mio
+        ? <p className="aviso">🛑 Por seguridad, RedCity no permite por ahora contratar ni ofrecer servicios de cuidado de niños o de adultos mayores en la app.</p>
+        : post.modo === 'ofrezco'
         ? <Oferta post={post} usuario={usuario} mio={mio} />
         : mio
           ? <MiNecesidad post={post} elegido={elegido} usuario={usuario} />

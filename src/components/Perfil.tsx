@@ -60,7 +60,7 @@ export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: 
             <Reputacion usuarioId={perfilId} completo />
           </div>
         </div>
-        <Insignias verificadoGps={verificadoGps} documentos={cuenta?.documentos} />
+        <Insignias verificadoGps={verificadoGps} documentos={NUBE ? undefined : cuenta?.documentos} />
         {cuenta?.bio && <p>{cuenta.bio}</p>}
         {!!cuenta?.oficios?.length && (
           <div className="oficios">{cuenta.oficios.map((o) => <span key={o} className="oficio">🛠️ {o}</span>)}</div>
@@ -149,7 +149,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
         </div>
         <SeccionFoto usuario={usuario} />
         {NUBE && <small className="muted">Por ahora tu foto solo se ve en este celular. Pronto la verán tus vecinos.</small>}
-        <Insignias verificadoGps={usuario.verificado} documentos={usuario.documentos} />
+        <Insignias verificadoGps={usuario.verificado} documentos={NUBE ? undefined : usuario.documentos} />
         <button className="btn secondary" onClick={() => nav.perfil(usuario.id)}>👁️ Ver mi perfil público</button>
         <div className="form">
           <label>Nombre visible
@@ -203,18 +203,19 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
 
       <section className="panel">
         <h3>🛡️ Verificación</h3>
-        <p className="muted">Entre más verificado estés, más confían tus vecinos. Algunos servicios la exigen:</p>
-        <ul className="lista-requisitos">
+        {NUBE && <p className="muted">Por ahora solo verificamos tu ubicación en el barrio. RedCity aún no revisa documentos de identidad.</p>}
+        {!NUBE && <p className="muted">Entre más verificado estés, más confían tus vecinos. Algunos servicios la exigen:</p>}
+        {!NUBE && <ul className="lista-requisitos">
           {Object.entries(REQUISITOS).map(([rubro, docs]) => (
             <li key={rubro}>{RUBRO[rubro]?.icono} {RUBRO[rubro]?.nombre}: {docs!.map((d) => NOMBRE_DOCUMENTO[d].split(' (')[0]).join(' + ')}</li>
           ))}
-        </ul>
+        </ul>}
         <div className="verif-fila">
           <span>📍 Ubicación en el barrio (GPS)</span>
           <span className={`estado ${usuario.verificado ? 'estado-completada' : 'estado-cancelada'}`}>{usuario.verificado ? 'Verificado' : 'Sin verificar'}</span>
         </div>
-        <Documento usuario={usuario} tipo="cedula" ayuda="Foto de tu cédula por ambos lados." />
-        <Documento usuario={usuario} tipo="antecedentes" ayuda="Certificados de antecedentes de la Policía y de la Procuraduría (se descargan gratis en sus páginas web)." />
+        {!NUBE && <Documento usuario={usuario} tipo="cedula" ayuda="Foto de tu cédula por ambos lados." />}
+        {!NUBE && <Documento usuario={usuario} tipo="antecedentes" ayuda="Certificados de antecedentes de la Policía y de la Procuraduría (se descargan gratis en sus páginas web)." />}
         <small className="muted">🔒 Tus documentos solo los ve el equipo de verificación, nunca tus vecinos. Son datos sensibles protegidos por la Ley 1581 de 2012.</small>
       </section>
 

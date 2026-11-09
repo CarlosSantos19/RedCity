@@ -3,7 +3,7 @@ import type { Categoria, Frecuencia, ModoServicio, NivelAlerta, Post, Usuario } 
 import { acciones, nuevoId } from '../store';
 import { CATEGORIAS } from './categorias';
 import { difuminar } from '../geo';
-import { FRECUENCIAS, GRUPOS, NOMBRE_DOCUMENTO, RUBROS, RUBROS_DOMESTICOS, UNIDADES, documentosFaltantes, requiereFoto, type GrupoId } from '../servicios';
+import { FRECUENCIAS, GRUPOS, NOMBRE_DOCUMENTO, RUBROS, RUBROS_DOMESTICOS, UNIDADES, documentosFaltantes, requiereFoto, rubroPausado, type GrupoId } from '../servicios';
 import { Desglose } from './Desglose';
 import { SelectorFotos } from './Fotos';
 import { borrarFoto } from '../fotos';
@@ -127,7 +127,7 @@ export function NewPost({ usuario, categoriaInicial = 'servicio', onCerrar }: Pr
                 <option value="">Selecciona…</option>
                 {(Object.keys(GRUPOS) as GrupoId[]).map((g) => (
                   <optgroup key={g} label={GRUPOS[g]}>
-                    {RUBROS.filter((r) => r.grupo === g).map((r) => <option key={r.id} value={r.id}>{r.icono} {r.nombre}</option>)}
+                    {RUBROS.filter((r) => r.grupo === g && !rubroPausado(r.id)).map((r) => <option key={r.id} value={r.id}>{r.icono} {r.nombre}</option>)}
                   </optgroup>
                 ))}
               </select>

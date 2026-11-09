@@ -1,4 +1,5 @@
 import type { EstadoServicio, Frecuencia, TipoDocumento, Usuario } from './types';
+import { NUBE } from './nube/config';
 
 /**
  * ¿RedCity maneja los pagos de los servicios? Por ahora NO: los vecinos acuerdan y pagan directamente
@@ -113,11 +114,21 @@ export const NOMBRE_DOCUMENTO: Record<TipoDocumento, string> = {
   antecedentes: 'Antecedentes (Policía y Procuraduría)',
 };
 
-/** Los servicios con requisitos de verificación también exigen foto de perfil real. */
-export const requiereFoto = (rubro: string) => !!REQUISITOS[rubro];
+/**
+ * En la versión real todavía no hay revisión de documentos: la verificación automática es solo del demo.
+ * Por eso el cuidado de niños y de adultos mayores queda en pausa (también en el servidor, migración 0010)
+ * y los demás oficios que entran a una casa muestran un aviso.
+ */
+export const RUBROS_PAUSADOS = NUBE ? ['ninera', 'adulto-mayor'] : [];
+export const rubroPausado = (rubro: string) => RUBROS_PAUSADOS.includes(rubro);
+export const sinRevisionDeIdentidad = (rubro: string) => NUBE && !!REQUISITOS[rubro] && !rubroPausado(rubro);
+
+/** Los servicios con requisitos de verificación también exigen foto de perfil real (en la versión real aún no se comparte). */
+export const requiereFoto = (rubro: string) => !NUBE && !!REQUISITOS[rubro];
 
 /** Documentos que le faltan a un usuario para el rubro indicado. */
 export function documentosFaltantes(u: Usuario, rubro: string): TipoDocumento[] {
+  if (NUBE) return [];
   return (REQUISITOS[rubro] ?? []).filter((d) => u.documentos?.[d] !== 'verificado');
 }
 

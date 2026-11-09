@@ -40,7 +40,7 @@ Vende lo que ya no usas: publica tus artículos con foto y precio, tus vecinos l
 🔒 TU PRIVACIDAD PRIMERO
 • Tu ubicación exacta nunca se muestra: las publicaciones aparecen a ±150 m.
 • Puedes bloquear y reportar a cualquier vecino.
-• Los vecinos se verifican por GPS, y quienes ofrecen servicios en casas (niñeras, cuidado de adultos mayores, aseo, cerrajería) deben verificar su identidad.
+• Los vecinos se verifican por GPS, para confirmar que viven en el barrio.
 • Puedes eliminar tu cuenta y tus datos cuando quieras desde tu perfil.
 • Tratamiento de datos según la Ley 1581 de 2012.
 
@@ -95,6 +95,7 @@ Google necesita entrar para revisarla. Elige **"Todas o algunas funciones están
 | Fotos | Sí | No | Funcionalidad (publicaciones, perfil, chat) |
 | Mensajes en la app | Sí | No | Funcionalidad (chat privado) |
 | Otro contenido generado por el usuario | Sí | No | Funcionalidad (publicaciones, comentarios) |
+| Historial de compras (servicios contratados y valor acordado; la app no procesa pagos) | Sí | No | Funcionalidad |
 | Interacciones en la app | Sí | No | Funcionalidad (me gusta, guardados) |
 | Información financiera / de tarjeta | **No** (la app no procesa pagos) | — | — |
 
