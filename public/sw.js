@@ -40,3 +40,27 @@ self.addEventListener('fetch', (e) => {
     }),
   );
 });
+
+// ---------- Notificaciones (SOS y mensajes privados) ----------
+self.addEventListener('push', (e) => {
+  let a = {};
+  try { a = e.data ? e.data.json() : {}; } catch { /* aviso sin datos */ }
+  e.waitUntil(self.registration.showNotification(a.titulo || 'RedCity', {
+    body: a.cuerpo || 'Tienes novedades en tu barrio.',
+    icon: `${BASE}icono-192.png`,
+    badge: `${BASE}icono-192.png`,
+    tag: a.etiqueta,
+    renotify: !!a.etiqueta,
+    requireInteraction: !!a.urgente,
+    vibrate: a.urgente ? [400, 150, 400, 150, 400] : [120],
+    data: { url: BASE },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((vs) => {
+    const v = vs.find((c) => new URL(c.url).pathname.startsWith(BASE));
+    return v ? v.focus() : self.clients.openWindow(BASE);
+  }));
+});

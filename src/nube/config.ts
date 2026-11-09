@@ -22,3 +22,6 @@ function quiereDemo(): boolean {
 
 /** true = cuentas y publicaciones compartidas en Supabase; false = demo local. */
 export const NUBE = typeof location !== 'undefined' && !!SUPABASE_URL && !!SUPABASE_KEY && !quiereDemo();
+
+/** Clave pública de notificaciones (Web Push). Es pública por diseño; la privada solo está en el servidor. */
+export const VAPID_PUBLICA = 'BBZ1SYtZUeRlnGBWpbjOm_NGrg-THTQ4iMdpbjdVkGT52ig4Xv1BnzPoynnIFnQKfiGsDtjsr5daZiYCUIncqVY';

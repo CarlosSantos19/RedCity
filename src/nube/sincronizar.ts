@@ -160,6 +160,7 @@ async function entrar(sesion: Session) {
   };
   actualizarEstado((s) => ({ ...s, cuentas: [...s.cuentas.filter((c) => c.id !== p.id), cuenta], sesionId: p.id }));
   await Promise.all([cargarBloqueos(), cargarFeed(), cargarRedes(), cargarChats()]);
+  void import('./push').then((p) => p.reafirmarSuscripcion()).catch(() => { /* la app sigue sin avisos */ });
   await cargarServicios();
   escucharTiempoReal();
 }
@@ -580,7 +581,12 @@ export async function iniciarNube() {
     reportar: (id, motivo: MotivoReporte) => void intentar('No se pudo enviar el reporte',
       supabase.from('reportes').insert({ publicacion_id: id, reportado_por: uid, motivo }).then((r) => { void cargarFeed(); return r; })),
     actualizarNombre: (nombre) => void intentar('No se pudo cambiar el nombre', supabase.from('perfiles').update({ nombre }).eq('id', uid!)),
-    cerrarSesion: () => { dejarDeEscuchar(); void supabase.auth.signOut(); uid = null; },
+    cerrarSesion: () => {
+      dejarDeEscuchar();
+      uid = null;
+      // Primero se quita la suscripción: después de cerrar sesión ya no habría permiso para hacerlo
+      void import('./push').then((p) => p.quitarDeEstaCuenta()).catch(() => { /* sin conexión */ }).finally(() => void supabase.auth.signOut());
+    },
 
     // Etapa 2: redes
     crearRed: (red) => {

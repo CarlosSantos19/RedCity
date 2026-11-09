@@ -6,6 +6,7 @@ import { RecortarFoto } from './RecortarFoto';
 import { NUBE } from '../nube/config';
 import { hace } from '../geo';
 import { AccionesVecino } from './AccionesVecino';
+import { ActivarNotificaciones } from './Notificaciones';
 import { lugarDeBarrio } from '../data/colombia';
 import { nav } from '../ui';
 import { NOMBRE_DOCUMENTO, REQUISITOS, RUBRO, cop } from '../servicios';
@@ -216,7 +217,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
         </div>
         {!NUBE && <Documento usuario={usuario} tipo="cedula" ayuda="Foto de tu cédula por ambos lados." />}
         {!NUBE && <Documento usuario={usuario} tipo="antecedentes" ayuda="Certificados de antecedentes de la Policía y de la Procuraduría (se descargan gratis en sus páginas web)." />}
-        <small className="muted">🔒 Tus documentos solo los ve el equipo de verificación, nunca tus vecinos. Son datos sensibles protegidos por la Ley 1581 de 2012.</small>
+        {!NUBE && <small className="muted">🔒 Tus documentos solo los ve el equipo de verificación, nunca tus vecinos. Son datos sensibles protegidos por la Ley 1581 de 2012.</small>}
       </section>
 
       {misBloqueos.length > 0 && (
@@ -228,6 +229,13 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
               <button className="btn link chico" onClick={() => acciones.desbloquear(usuario.id, b.a)}>Desbloquear</button>
             </div>
           ))}
+        </section>
+      )}
+
+      {NUBE && (
+        <section className="panel">
+          <h3>🔔 Notificaciones</h3>
+          <ActivarNotificaciones />
         </section>
       )}
 

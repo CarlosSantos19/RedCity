@@ -3,6 +3,7 @@ import type { Barrio, Red, TipoRed, Usuario } from '../types';
 import { acciones, alertaActiva, esMiembro } from '../store';
 import { distanciaKm } from '../geo';
 import { NUBE } from '../nube/config';
+import { ActivarNotificaciones } from './Notificaciones';
 
 interface Props {
   usuario: Usuario;
@@ -58,6 +59,7 @@ export function Redes({ usuario, redes, barrios, onAbrir }: Props) {
 
   return (
     <div className="feed">
+      <ActivarNotificaciones compacto />
       <div className="aviso peligro">🚨 Las redes <b>no reemplazan</b> a las autoridades. En una emergencia llama primero a la <a href="tel:123">Línea 123</a>.</div>
 
       <section className="panel">
