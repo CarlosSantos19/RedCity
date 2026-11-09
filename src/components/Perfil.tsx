@@ -274,7 +274,7 @@ function EliminarCuenta({ usuario }: { usuario: Usuario }) {
     <section className="panel zona-peligro">
       <h3>⚠️ Eliminar mi cuenta</h3>
       <p>Se borrarán <b>para siempre</b> tu perfil, tus publicaciones y fotos, comentarios, mensajes, calificaciones y tu participación en redes. <b>No se puede deshacer.</b></p>
-      <p className="muted">Los registros de servicios realizados se conservan sin tu nombre ni tus datos, para no borrar las reseñas de los demás vecinos.</p>
+      <p className="muted">Los registros de servicios realizados se conservan sin tu nombre ni tus datos, para que el otro vecino conserve su historial de servicios.</p>
       <div className="form">
         <label>Para confirmar, escribe <b>ELIMINAR</b>
           <input value={texto} onChange={(e) => setTexto(e.target.value)} autoCapitalize="characters" />
