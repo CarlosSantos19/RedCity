@@ -24,4 +24,4 @@ function quiereDemo(): boolean {
 export const NUBE = typeof location !== 'undefined' && !!SUPABASE_URL && !!SUPABASE_KEY && !quiereDemo();
 
 /** Clave pública de notificaciones (Web Push). Es pública por diseño; la privada solo está en el servidor. */
-export const VAPID_PUBLICA = 'BBZ1SYtZUeRlnGBWpbjOm_NGrg-THTQ4iMdpbjdVkGT52ig4Xv1BnzPoynnIFnQKfiGsDtjsr5daZiYCUIncqVY';
+export const VAPID_PUBLICA = 'BIhjpAj3n9CIymcl4o2CczPJ59Z5mmw9-iiQBpigYXZlPnXm694mNMn8_yAlK66a4aSr2jtgNbgJ1FVjp7qr6N8';
