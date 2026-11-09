@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type {
-  Barrio, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajePrivado, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
-  PostServicio, Postulacion, Promocion, Red, Reel, Reporte, RespuestaAlerta, TipoDocumento, TipoRed, Usuario, VisibilidadFoto,
+  Barrio, Bloqueo, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajePrivado, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
+  PostServicio, Postulacion, Promocion, Red, Reel, Reporte, ReporteUsuario, RespuestaAlerta, TipoDocumento, TipoRed, Usuario, VisibilidadFoto,
 } from './types';
 import { borrarFoto } from './fotos';
 import { NUBE } from './nube/config';
@@ -32,6 +32,8 @@ export interface Estado {
   conversaciones: Conversacion[];
   calificaciones: Calificacion[];
   reportes: Reporte[];
+  bloqueos: Bloqueo[];
+  reportesUsuario: ReporteUsuario[];
   promociones: Promocion[];
   historias: Historia[];
   reels: Reel[];
@@ -134,6 +136,9 @@ export interface GanchosNube {
   meGusta(postId: string, activo: boolean): void;
   compartido(postId: string): void;
   reportar(postId: string, motivo: MotivoReporte): void;
+  bloquear(otroId: string): void;
+  desbloquear(otroId: string): void;
+  reportarUsuario(otroId: string, motivo: MotivoReporte, detalle: string, conversacionId?: string): void;
   actualizarNombre(nombre: string): void;
   cerrarSesion(): void;
   // Etapa 2: redes y chat
@@ -157,6 +162,10 @@ export interface GanchosNube {
   cancelarServicio(postId: string): void;
   calificar(pagoId: string, estrellas: number, comentario: string): void;
 }
+/** ¿Hay un bloqueo entre estos dos vecinos, en cualquier sentido? */
+export const hayBloqueo = (bloqueos: Bloqueo[], a: string, b: string) =>
+  bloqueos.some((x) => (x.de === a && x.a === b) || (x.de === b && x.a === a));
+
 let nube: GanchosNube | null = null;
 export function registrarGanchosNube(g: GanchosNube) { nube = g; }
 
@@ -182,10 +191,10 @@ function inicial(): Estado {
   if (NUBE) {
     // Modo real: nada de ejemplo (negocios, redes, reseñas, historias falsas confundirían a los vecinos)
     return { cuentas: [], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts: [], pagos: [], redes: [],
-      conversaciones: [], calificaciones: [], reportes: [], promociones: [], historias: [], reels: [], notas: [], empresas: [] };
+      conversaciones: [], calificaciones: [], reportes: [], bloqueos: [], reportesUsuario: [], promociones: [], historias: [], reels: [], notas: [], empresas: [] };
   }
   return { cuentas: [cuentaDemo()], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts, pagos: [], redes: redesSemilla(BARRIOS_SEMILLA),
-    conversaciones: [], calificaciones: calificacionesSemilla(), reportes: [], promociones: promocionesSemilla(posts),
+    conversaciones: [], calificaciones: calificacionesSemilla(), reportes: [], bloqueos: [], reportesUsuario: [], promociones: promocionesSemilla(posts),
     historias: historiasSemilla(BARRIOS_SEMILLA), reels: [], notas: notasSemilla(BARRIOS_SEMILLA),
     empresas: empresasSemilla(BARRIOS_SEMILLA),
   };
@@ -214,6 +223,8 @@ function cargar(): Estado {
       s.conversaciones ??= [];
       s.calificaciones ??= calificacionesSemilla();
       s.reportes ??= [];
+      s.bloqueos ??= [];
+      s.reportesUsuario ??= [];
       s.promociones ??= promocionesSemilla(s.posts);
       // Datos guardados antes de existir las ventas de garaje
       if (!NUBE && !s.posts.some((p) => p.categoria === 'garaje')) s.posts = [...s.posts, ...garajeSemilla(s.barrios)];
@@ -675,6 +686,8 @@ export const acciones = {
     return conv.id;
   },
   enviarPrivado(convId: string, autor: Usuario, texto: string, foto?: string) {
+    const conv = estado.conversaciones.find((c) => c.id === convId);
+    if (conv && hayBloqueo(estado.bloqueos, autor.id, otro(conv, autor.id))) return;
     const ahora = Date.now();
     const mensaje: MensajePrivado = { id: nuevoId(), autorId: autor.id, texto, foto, creado: ahora };
     actualizarConversacion(convId, (c) => ({
@@ -691,6 +704,26 @@ export const acciones = {
       actualizarConversacion(convId, (x) => ({ ...x, leido: { ...x.leido, [usuarioId]: Date.now() } }));
       nube?.marcarLeida(convId);
     }
+  },
+
+  // ---------- Bloquear y reportar vecinos ----------
+  bloquear(yoId: string, otroId: string, nombre: string) {
+    if (yoId === otroId || estado.bloqueos.some((b) => b.de === yoId && b.a === otroId)) return;
+    set((s) => ({ ...s, bloqueos: [...s.bloqueos, { de: yoId, a: otroId, nombre }] }));
+    nube?.bloquear(otroId);
+  },
+  desbloquear(yoId: string, otroId: string) {
+    set((s) => ({ ...s, bloqueos: s.bloqueos.filter((b) => !(b.de === yoId && b.a === otroId)) }));
+    nube?.desbloquear(otroId);
+  },
+  /** Reporta a una persona o un chat. Devuelve error o null. */
+  reportarUsuario(porId: string, reportadoId: string, motivo: MotivoReporte, detalle: string, conversacionId?: string): string | null {
+    if (porId === reportadoId) return 'No puedes reportarte a ti mismo.';
+    if (estado.reportesUsuario.some((r) => r.porId === porId && r.reportadoId === reportadoId)) return 'Ya reportaste a este vecino.';
+    const reporte: ReporteUsuario = { id: nuevoId(), porId, reportadoId, motivo, detalle, conversacionId, creado: Date.now() };
+    set((s) => ({ ...s, reportesUsuario: [...s.reportesUsuario, reporte] }));
+    nube?.reportarUsuario(reportadoId, motivo, detalle, conversacionId);
+    return null;
   },
 
   // ---------- Calificaciones ----------

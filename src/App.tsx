@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { acciones, alertaActiva, esMiembro, noLeidos, useEstado } from './store';
+import { acciones, alertaActiva, esMiembro, hayBloqueo, noLeidos, useEstado } from './store';
 import { nav, useUI } from './ui';
 import type { Categoria, Post, Promocion } from './types';
 import { ESPACIOS_PROMO, POSICION_SEGUNDO_ESPACIO, promoActiva } from './promociones';
@@ -25,7 +25,7 @@ import type { Empresa } from './types';
 import { PanelDerecho, PanelIzquierdo } from './components/Laterales';
 import { FilaDesplazable } from './components/FilaDesplazable';
 import { NUBE } from './nube/config';
-import { AvisoSoloDispositivo, CargandoNube, ErrorNube, NuevaClave } from './nube/ComponentesNube';
+import { CargandoNube, ErrorNube, NuevaClave } from './nube/ComponentesNube';
 import { useNube } from './nube/sincronizar';
 
 const RADIOS = [0.5, 1, 2];
@@ -61,7 +61,7 @@ function textoBuscable(p: Post): string {
 }
 
 export default function App() {
-  const { usuario, barrios, posts, pagos, redes, conversaciones, promociones, empresas } = useEstado();
+  const { usuario, barrios, posts, pagos, redes, conversaciones, promociones, empresas, bloqueos } = useEstado();
   const estadoNube = useNube();
   const [verNegocios, setVerNegocios] = useState(false);
   /** null = cerrado; { empresa: undefined } = crear; { empresa } = editar */
@@ -95,6 +95,9 @@ export default function App() {
     else setCreacion(t);
   }
 
+  /** En la versión real hoy solo se crean publicaciones: lo demás aún no se comparte con los vecinos. */
+  const abrirCrear = () => (NUBE ? elegirCreacion('publicacion') : setMenuCrear(true));
+
   const nombreBarrio = useMemo(() => new Map(barrios.map((b) => [b.id, b.nombre])), [barrios]);
 
   /**
@@ -118,12 +121,14 @@ export default function App() {
       }
       return !q || q.split(/\s+/).every((palabra) => textoBuscable(p).includes(palabra));
     };
-    const candidatos = posts.filter(pasaFiltros).map((p) => ({ post: p, distancia: distanciaKm(usuario.lat, usuario.lng, p.lat, p.lng) }));
+    // En la nube lo filtra el servidor, que además deja visibles los servicios en curso
+    const bloqueado = (p: Post) => !NUBE && !!usuario && p.autorId !== usuario.id && hayBloqueo(bloqueos, usuario.id, p.autorId);
+    const candidatos = posts.filter((p) => !bloqueado(p) && pasaFiltros(p)).map((p) => ({ post: p, distancia: distanciaKm(usuario.lat, usuario.lng, p.lat, p.lng) }));
     const porId = new Map(candidatos.map((x) => [x.post.id, x]));
 
     // Promociones: activas, dentro del alcance PAGADO (aunque esté fuera de mi radio), máx. 2, en rotación
     const promos = promociones
-      .filter((pr) => promoActiva(pr, ahora))
+      .filter((pr) => !NUBE && promoActiva(pr, ahora))
       .map((pr) => ({ promo: pr, ...porId.get(pr.postId)! }))
       .filter((x) => x.post && !x.post.oculta && x.distancia <= x.promo.alcanceKm)
       .sort((a, b) => turno(a.promo.id) - turno(b.promo.id))
@@ -134,7 +139,7 @@ export default function App() {
       .filter((x) => x.distancia <= usuario.radioKm && !promovidos.has(x.post.id))
       .sort((a, b) => Number(esFijado(b.post)) - Number(esFijado(a.post)) || b.post.creado - a.post.creado);
     return { cercanos, promos };
-  }, [posts, usuario, filtro, modoServ, grupo, busqueda, promociones]);
+  }, [posts, usuario, filtro, modoServ, grupo, busqueda, promociones, bloqueos]);
 
   /** Feed final: espacio promocionado arriba, otro después de 5 publicaciones normales. */
   const feed: { post: Post; distancia: number; promo?: Promocion }[] = [...cercanos];
@@ -185,7 +190,7 @@ export default function App() {
   return (
     <div className="layout">
     <aside className="lateral izquierda">
-      <PanelIzquierdo usuario={usuario} vista={vista} onVista={setVista} onNegocios={() => setVerNegocios(true)} onReels={() => setVerReels(true)} onCrear={() => setMenuCrear(true)} />
+      <PanelIzquierdo usuario={usuario} vista={vista} onVista={setVista} onNegocios={() => setVerNegocios(true)} onReels={() => setVerReels(true)} onCrear={abrirCrear} />
     </aside>
     <div className="app">
       <header className="topbar">
@@ -216,8 +221,8 @@ export default function App() {
         <>
           <div className="buscador">
             <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="🔍 Buscar: plomero, bicicleta, panadería…" />
-            <button className="btn chico secondary" onClick={() => setVerNegocios(true)} aria-label="Negocios del barrio" title="Negocios">🏢</button>
-            <button className="btn chico secondary" onClick={() => setVerReels(true)} aria-label="Ver reels" title="Reels">🎬</button>
+            {!NUBE && <button className="btn chico secondary" onClick={() => setVerNegocios(true)} aria-label="Negocios del barrio" title="Negocios">🏢</button>}
+            {!NUBE && <button className="btn chico secondary" onClick={() => setVerReels(true)} aria-label="Ver reels" title="Reels">🎬</button>}
             <button className={`btn chico ${verMapa ? 'primary' : 'secondary'}`} onClick={() => setVerMapa(!verMapa)} title={verMapa ? 'Ver lista' : 'Ver mapa'}>
               {verMapa ? '📰' : '🗺️'}<span className="solo-ancho">{verMapa ? ' Lista' : ' Mapa'}</span>
             </button>
@@ -246,7 +251,6 @@ export default function App() {
         </>
       )}
 
-      {vista === 'servicios' && <AvisoSoloDispositivo que="Las promociones" />}
       <main>
         {vista === 'redes' && <Redes usuario={usuario} redes={redes} barrios={barrios} onAbrir={nav.red} />}
         {vista === 'mensajes' && <Bandeja usuario={usuario} />}
@@ -256,7 +260,7 @@ export default function App() {
           <MapView usuario={usuario} posts={cercanos.map((x) => x.post)} onAbrir={nav.post} />
         ) : (
           <div className="feed">
-            {!busqueda && (
+            {!busqueda && !NUBE && (
               <BarraHistorias
                 usuario={usuario}
                 onCrearHistoria={() => setCreacion('historia')}
@@ -283,7 +287,7 @@ export default function App() {
         ))}
       </main>
 
-      {(vista === 'barrio' || vista === 'servicios') && <button className="fab" onClick={() => setMenuCrear(true)} aria-label="Crear">＋</button>}
+      {(vista === 'barrio' || vista === 'servicios') && <button className="fab" onClick={abrirCrear} aria-label="Crear">＋</button>}
 
       <nav className="bottombar">
         {pestaña('barrio', '📰', 'Barrio')}

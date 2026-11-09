@@ -27,7 +27,7 @@ export function Onboarding() {
           <li>🧰 Servicios</li>
           <li>🆘 SOS vecinal</li>
           <li>📦 Ventas de garaje</li>
-          <li>🏢 Negocios</li>
+          {!NUBE && <li>🏢 Negocios</li>}
           <li>🔄 Trueque</li>
         </ul>
         <p className="sello">📍 En toda Colombia · Tus vecinos, a un toque</p>

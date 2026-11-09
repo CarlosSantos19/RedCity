@@ -589,3 +589,10 @@ h1, h2, h3, h4 { margin: 0; }
 .brand .ventajas { list-style: none; padding: 0; margin: .9rem 0 .6rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; }
 .brand .ventajas li { background: var(--primario-claro); color: var(--primario-oscuro); font-weight: 600; font-size: .85rem; padding: .3rem .7rem; border-radius: 999px; }
 .brand .sello { font-size: .8rem; font-weight: 600; color: var(--primario); margin: 0; }
+
+/* ---------- Bloquear y reportar vecinos ---------- */
+.acciones-vecino { padding: 0 1rem; }
+.modal > .acciones-vecino { padding: 0; }
+.fila-acciones-vecino { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; }
+.fila-acciones-vecino .btn { width: auto; margin: 0; padding: .3rem .5rem; color: var(--suave); }
+.reporte-vecino { padding: .5rem 0; }

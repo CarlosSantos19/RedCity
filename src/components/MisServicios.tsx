@@ -1,6 +1,7 @@
 import type { Pago, Post, PostServicio, Usuario } from '../types';
 import { COMISION, ESTADOS, PAGOS_EN_APP, RUBRO, cop } from '../servicios';
 import { useEstado } from '../store';
+import { NUBE } from '../nube/config';
 import { PLAN, promoActiva } from '../promociones';
 
 interface Props {
@@ -50,7 +51,7 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
         <small className="muted">Las comisiones solo se cobran cuando el cliente confirma que el servicio se realizó. Los ingresos por promociones incluyen las de ejemplo del demo.</small>
       </section>}
 
-      <section className="panel">
+      {!NUBE && <section className="panel">
         <h3>📣 Mis promociones ({misPromos.length})</h3>
         {misPromos.length === 0 && <p className="muted">Abre una de tus publicaciones (evento, oferta, servicio o trueque) y toca “Promocionar” para que la vean más vecinos.</p>}
         {misPromos.map((pr) => (
@@ -63,7 +64,7 @@ export function MisServicios({ usuario, posts, pagos, onAbrir }: Props) {
             <span className={`estado ${promoActiva(pr) ? 'estado-completada' : ''}`}>{promoActiva(pr) ? 'Activa' : pr.estado === 'detenida' ? 'Detenida' : 'Terminada'}</span>
           </button>
         ))}
-      </section>
+      </section>}
 
       <section className="panel">
         <h3>🙋 Lo que he solicitado ({solicitados.length})</h3>

@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
 import type { PostServicio, TipoDocumento, Usuario, VisibilidadFoto } from '../types';
-import { MAX_OFICIOS, acciones, useEstado } from '../store';
+import { MAX_OFICIOS, acciones, hayBloqueo, useEstado } from '../store';
 import { Avatar } from './Avatar';
 import { RecortarFoto } from './RecortarFoto';
 import { NUBE } from '../nube/config';
 import { hace } from '../geo';
+import { AccionesVecino } from './AccionesVecino';
 import { lugarDeBarrio } from '../data/colombia';
 import { nav } from '../ui';
 import { NOMBRE_DOCUMENTO, REQUISITOS, RUBRO, cop } from '../servicios';
@@ -28,7 +29,7 @@ export function Insignias({ verificadoGps, documentos }: { verificadoGps: boolea
 
 /** Perfil público de cualquier vecino (no muestra correo ni ubicación). */
 export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: Usuario }) {
-  const { cuentas, posts, pagos, calificaciones, barrios, empresas } = useEstado();
+  const { cuentas, posts, pagos, calificaciones, barrios, empresas, bloqueos } = useEstado();
   const cuenta = cuentas.find((c) => c.id === perfilId);
   const susEmpresas = empresas.filter((e) => e.duenoId === perfilId);
   const susPosts = posts.filter((p) => p.autorId === perfilId && !p.oculta);
@@ -66,7 +67,8 @@ export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: 
         )}
         <EnlacesRedes redes={cuenta?.redes} />
         {trabajos > 0 && <p className="muted">✅ {trabajos} servicio(s) completado(s) por la app</p>}
-        {!soyYo && <button className="btn primary" onClick={escribir}>💬 Escribir en privado</button>}
+        {!soyYo && !hayBloqueo(bloqueos, usuario.id, perfilId) && <button className="btn primary" onClick={escribir}>💬 Escribir en privado</button>}
+        {!soyYo && <AccionesVecino usuario={usuario} otroId={perfilId} nombre={nombre} />}
         {!soyYo && cuenta?.foto && (
           yaReporteFoto
             ? <small className="muted">🚩 Reportaste la foto de este vecino.</small>
@@ -113,7 +115,8 @@ export function PerfilModal({ perfilId, usuario }: { perfilId: string; usuario: 
 
 /** Pestaña "Perfil": mis datos, verificación de documentos, instalar la app y cerrar sesión. */
 export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuario; onSalir: () => void; onCrearNegocio: () => void }) {
-  const { barrios, posts, empresas } = useEstado();
+  const { barrios, posts, empresas, bloqueos } = useEstado();
+  const misBloqueos = bloqueos.filter((b) => b.de === usuario.id);
   const misEmpresas = empresas.filter((e) => e.duenoId === usuario.id);
   const [bio, setBio] = useState(usuario.bio ?? '');
   const [redes, setRedes] = useState<Partial<Record<RedSocial, string>>>(editablesDe(usuario.redes));
@@ -145,6 +148,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
           </div>
         </div>
         <SeccionFoto usuario={usuario} />
+        {NUBE && <small className="muted">Por ahora tu foto solo se ve en este celular. Pronto la verán tus vecinos.</small>}
         <Insignias verificadoGps={usuario.verificado} documentos={usuario.documentos} />
         <button className="btn secondary" onClick={() => nav.perfil(usuario.id)}>👁️ Ver mi perfil público</button>
         <div className="form">
@@ -171,7 +175,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
 
       <EditorOficios usuario={usuario} />
 
-      <section className="panel">
+      {!NUBE && <section className="panel">
         <div className="titulo-seccion">
           <h3>🏢 Mis negocios ({misEmpresas.length})</h3>
           <button className="btn primary chico" onClick={onCrearNegocio}>＋ Crear</button>
@@ -183,7 +187,7 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
             <span className="fila-titulo">{e.nombre}<small className="muted"><br />{e.seguidores.length} seguidores · {e.verificacion === 'verificada' ? '✔ verificado' : 'sin verificar'}</small></span>
           </button>
         ))}
-      </section>
+      </section>}
 
       <section className="panel">
         <h3>🔖 Guardados ({guardados.length})</h3>
@@ -213,6 +217,18 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
         <Documento usuario={usuario} tipo="antecedentes" ayuda="Certificados de antecedentes de la Policía y de la Procuraduría (se descargan gratis en sus páginas web)." />
         <small className="muted">🔒 Tus documentos solo los ve el equipo de verificación, nunca tus vecinos. Son datos sensibles protegidos por la Ley 1581 de 2012.</small>
       </section>
+
+      {misBloqueos.length > 0 && (
+        <section className="panel">
+          <h3>🚫 Vecinos bloqueados ({misBloqueos.length})</h3>
+          {misBloqueos.map((b) => (
+            <div key={b.a} className="titulo-seccion">
+              <span>{b.nombre}</span>
+              <button className="btn link chico" onClick={() => acciones.desbloquear(usuario.id, b.a)}>Desbloquear</button>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="panel">
         <h3>📱 La app en tu celular</h3>

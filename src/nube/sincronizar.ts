@@ -159,7 +159,7 @@ async function entrar(sesion: Session) {
     hashClave: '', sal: '', creado: Date.parse(p.creado_en),
   };
   actualizarEstado((s) => ({ ...s, cuentas: [...s.cuentas.filter((c) => c.id !== p.id), cuenta], sesionId: p.id }));
-  await Promise.all([cargarFeed(), cargarRedes(), cargarChats()]);
+  await Promise.all([cargarBloqueos(), cargarFeed(), cargarRedes(), cargarChats()]);
   await cargarServicios();
   escucharTiempoReal();
 }
@@ -167,7 +167,7 @@ async function entrar(sesion: Session) {
 function salir() {
   dejarDeEscuchar();
   uid = null;
-  actualizarEstado((s) => ({ ...s, sesionId: null }));
+  actualizarEstado((s) => ({ ...s, sesionId: null, bloqueos: [], reportesUsuario: [] }));
 }
 
 // ---------- Publicaciones ----------
@@ -282,6 +282,27 @@ async function intentarRedes(contexto: string, op: PromiseLike<{ error: unknown 
   if (error) mostrarError(contexto, error);
   await cargarRedes();
 }
+
+// ---------- Bloqueos y reportes de vecinos ----------
+export async function cargarBloqueos() {
+  const yo = uid;
+  if (!yo) return;
+  const [bloqueos, reportes] = await Promise.all([
+    supabase.rpc('mis_bloqueos'),
+    supabase.from('reportes_usuario').select('id, reportado_id, motivo, creado_en'),
+  ]);
+  if (bloqueos.error || reportes.error) return; // sin esto la app sigue funcionando; el servidor igual hace cumplir los bloqueos
+  actualizarEstado((s) => ({
+    ...s,
+    bloqueos: (bloqueos.data as { bloqueado: string; nombre: string }[]).map((b) => ({ de: yo, a: b.bloqueado, nombre: b.nombre })),
+    reportesUsuario: (reportes.data as { id: string; reportado_id: string; motivo: MotivoReporte; creado_en: string }[]).map((r) => ({
+      id: r.id, reportadoId: r.reportado_id, porId: yo, motivo: r.motivo, detalle: '', creado: Date.parse(r.creado_en),
+    })),
+  }));
+}
+
+/** Tras bloquear o desbloquear, el servidor es quien decide qué se ve. */
+const refrescarTrasBloqueo = () => { void cargarBloqueos(); void cargarFeed(); void cargarChats(); };
 
 // ---------- Etapa 2b: servicios (propuestas, pagos, calificaciones) ----------
 interface FilaPostulacion { id: string; publicacion_id: string; proveedor_id: string; proveedor: string; verificado: boolean; precio: number; mensaje: string; creado_en: string }
@@ -600,6 +621,17 @@ export async function iniciarNube() {
     registrarServicio: (id) => void servicio('No se pudo confirmar el servicio', () => supabase.rpc('registrar_servicio', { p_publicacion: id })),
     cancelarServicio: (id) => void servicio('No se pudo cancelar', () => supabase.rpc('cancelar_servicio', { p_publicacion: id })),
     calificar: (pagoId, estrellas, comentario) => void servicio('No se pudo guardar tu calificación', () => supabase.rpc('calificar', { p_pago: pagoId, p_estrellas: estrellas, p_comentario: comentario })),
+
+    // Bloquear y reportar vecinos
+    bloquear: (otroId) => void intentar('No se pudo bloquear a este vecino',
+      supabase.from('bloqueos').insert({ bloqueador: uid, bloqueado: otroId }).then((r) => { refrescarTrasBloqueo(); return r; })),
+    desbloquear: (otroId) => void intentar('No se pudo desbloquear a este vecino',
+      supabase.from('bloqueos').delete().match({ bloqueador: uid, bloqueado: otroId }).then((r) => { refrescarTrasBloqueo(); return r; })),
+    reportarUsuario: (otroId, motivo, detalle, conversacionId) => void (async () => {
+      const real = conversacionId ? await (convPendientes.get(conversacionId) ?? Promise.resolve(conversacionId)).catch(() => null) : null;
+      await intentar('No se pudo enviar el reporte',
+        supabase.from('reportes_usuario').insert({ reportado_id: otroId, reportado_por: uid, conversacion_id: real, motivo, detalle }));
+    })(),
 
     // Etapa 2: chat
     abrirConversacion: (convId, otroId, postId) => void abrirConversacion(convId, otroId, postId),

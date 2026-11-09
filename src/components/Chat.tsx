@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Conversacion, Usuario } from '../types';
-import { acciones, noLeidos, otro, useEstado } from '../store';
+import { acciones, hayBloqueo, noLeidos, otro, useEstado } from '../store';
 import { hace } from '../geo';
 import { nav } from '../ui';
 import { Foto } from './Fotos';
 import { guardarFoto } from '../fotos';
 import { Avatar } from './Avatar';
+import { AccionesVecino } from './AccionesVecino';
 
 const ultimo = (c: Conversacion) => c.mensajes[c.mensajes.length - 1]?.creado ?? 0;
 
@@ -51,6 +52,8 @@ export function ChatModal({ conv, usuario }: { conv: Conversacion; usuario: Usua
   const fin = useRef<HTMLDivElement>(null);
   const archivo = useRef<HTMLInputElement>(null);
   const otroId = otro(conv, usuario.id);
+  const { bloqueos } = useEstado();
+  const bloqueado = hayBloqueo(bloqueos, usuario.id, otroId);
 
   useEffect(() => {
     acciones.marcarLeida(conv.id, usuario.id);
@@ -80,6 +83,7 @@ export function ChatModal({ conv, usuario }: { conv: Conversacion; usuario: Usua
           </button>
           <button className="cerrar estatico" onClick={() => nav.chat(null)} aria-label="Cerrar">✕</button>
         </header>
+        <AccionesVecino usuario={usuario} otroId={otroId} nombre={conv.nombres[otroId] ?? 'este vecino'} conversacionId={conv.id} />
         {conv.postTitulo && (
           <button className="chat-contexto" onClick={() => { nav.chat(null); if (conv.postId) nav.post(conv.postId); }}>
             📌 Sobre: {conv.postTitulo}
@@ -96,12 +100,12 @@ export function ChatModal({ conv, usuario }: { conv: Conversacion; usuario: Usua
           ))}
           <div ref={fin} />
         </div>
-        <div className="responder">
+        {bloqueado ? <p className="aviso centro">🚫 No pueden escribirse porque hay un bloqueo entre ustedes.</p> : <div className="responder">
           <button className="btn secondary chico" onClick={() => archivo.current?.click()} disabled={subiendo} aria-label="Enviar foto">📷</button>
           <input ref={archivo} type="file" accept="image/*" hidden onChange={(e) => enviarFoto(e.target.files?.[0])} />
           <input value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && enviar()} placeholder="Escribe un mensaje…" autoFocus />
           <button className="btn primary" onClick={enviar}>Enviar</button>
-        </div>
+        </div>}
       </div>
     </div>
   );

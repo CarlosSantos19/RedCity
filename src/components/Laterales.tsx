@@ -6,6 +6,7 @@ import { RUBRO } from '../servicios';
 import { Reputacion } from './Estrellas';
 import { Avatar } from './Avatar';
 import { URL_APP } from '../marca';
+import { NUBE } from '../nube/config';
 import { lugarDeBarrio } from '../data/colombia';
 
 export type VistaApp = 'barrio' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
@@ -52,8 +53,8 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
         {item('mensajes', '💬', 'Mensajes', sinLeer > 0 && <i className="lat-contador">{sinLeer}</i>)}
         {item('servicios', '💼', 'Mis servicios')}
         {item('perfil', '👤', 'Mi perfil')}
-        <button className="lat-item" onClick={onNegocios}><span className="lat-icono">🏢</span>Negocios del barrio</button>
-        <button className="lat-item" onClick={onReels}><span className="lat-icono">🎬</span>Reels</button>
+        {!NUBE && <button className="lat-item" onClick={onNegocios}><span className="lat-icono">🏢</span>Negocios del barrio</button>}
+        {!NUBE && <button className="lat-item" onClick={onReels}><span className="lat-icono">🎬</span>Reels</button>}
         <button className="lat-item" onClick={() => onVista('perfil')}><span className="lat-icono">🔖</span>Guardados</button>
       </nav>
 
@@ -169,7 +170,7 @@ export function PanelDerecho({ usuario, onNegocios }: { usuario: Usuario; onNego
         })}
       </section>
 
-      <section className="lat-tarjeta">
+      {!NUBE && <section className="lat-tarjeta">
         <h4>🏢 Negocios cerca</h4>
         {negocios.length === 0 && <p className="muted">Aún no hay negocios registrados cerca.</p>}
         {negocios.map(({ e, d }) => (
@@ -179,7 +180,7 @@ export function PanelDerecho({ usuario, onNegocios }: { usuario: Usuario; onNego
           </button>
         ))}
         <button className="btn secondary chico ancho" onClick={onNegocios}>Ver todos los negocios</button>
-      </section>
+      </section>}
 
       <section className="lat-tarjeta invitar-tarjeta">
         <h4>💌 Invita a tus vecinos</h4>

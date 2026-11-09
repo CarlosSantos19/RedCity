@@ -13,7 +13,7 @@ RedCity: la red de tu barrio
 
 **Descripción breve** (máx. 80 caracteres):
 ```
-Servicios, SOS vecinal, ventas de garaje y negocios a pocas cuadras de tu casa.
+Servicios, SOS vecinal, ventas de garaje y ofertas a pocas cuadras de tu casa.
 ```
 
 **Descripción completa** (máx. 4.000 caracteres):
@@ -30,20 +30,16 @@ RedCity no reemplaza a las autoridades: en una emergencia llama siempre primero 
 📦 VENTAS DE GARAJE
 Vende lo que ya no usas: publica tus artículos con foto y precio, tus vecinos los apartan y te escriben por privado.
 
-🏢 NEGOCIOS DEL BARRIO
-La panadería, la ferretería, el taller o el profesional independiente tienen su página con horario, contacto y redes sociales verificadas.
-
 ✨ Y ADEMÁS
 • Trueque de objetos y habilidades
 • Alertas de seguridad confirmadas por vecinos
 • Ofertas de los comercios cercanos y eventos del barrio
-• Historias, reels y notas de 24 horas solo para tu zona
 • Chat privado con fotos
 • Me gusta, comentar, compartir y guardar
 
 🔒 TU PRIVACIDAD PRIMERO
 • Tu ubicación exacta nunca se muestra: las publicaciones aparecen a ±150 m.
-• Tú decides quién ve tu foto de perfil.
+• Puedes bloquear y reportar a cualquier vecino.
 • Los vecinos se verifican por GPS, y quienes ofrecen servicios en casas (niñeras, cuidado de adultos mayores, aseo, cerrajería) deben verificar su identidad.
 • Puedes eliminar tu cuenta y tus datos cuando quieras desde tu perfil.
 • Tratamiento de datos según la Ley 1581 de 2012.
@@ -56,7 +52,7 @@ RedCity funciona en los 1.122 municipios de Colombia: si tu barrio aún no está
 |---|---|
 | Ícono de la app (512×512) | `public/icono-512.png` |
 | Imagen destacada (1024×500) | `tienda/imagenes/imagen-destacada-1024x500.png` |
-| Capturas de teléfono (mín. 2) | `tienda/imagenes/captura-1-barrio.png` … `captura-6-crear.png` |
+| Capturas de teléfono (mín. 2) | `tienda/imagenes/captura-1-barrio.png` … `captura-4-red-sos.png` |
 
 **Categoría:** Aplicación → **Social** · **Etiquetas:** Comunidad, Redes sociales, Servicios locales
 **Correo de contacto:** `redcity.soporte@gmail.com`

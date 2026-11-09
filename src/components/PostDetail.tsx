@@ -9,6 +9,7 @@ import { ServicioDetalle } from './ServicioDetalle';
 import { Galeria } from './Fotos';
 import { Reputacion } from './Estrellas';
 import { SeccionPromocion } from './Promocionar';
+import { NUBE } from '../nube/config';
 import { GarajeDetalle } from './Garaje';
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
   barrio: string;
 }
 
-const MOTIVOS: Record<MotivoReporte, string> = {
+export const MOTIVOS: Record<MotivoReporte, string> = {
   estafa: 'Estafa o fraude',
   falso: 'Información falsa',
   discriminacion: 'Discriminación o estigmatización',
@@ -80,7 +81,7 @@ export function PostDetail({ post, usuario, barrio }: Props) {
 
         <BarraAcciones post={post} usuario={usuario} enDetalle onComentar={() => campoComentario.current?.focus()} />
 
-        {esMio && <SeccionPromocion post={post} usuario={usuario} />}
+        {esMio && !NUBE && <SeccionPromocion post={post} usuario={usuario} />}
 
         {post.categoria === 'servicio' && <ServicioDetalle post={post} usuario={usuario} />}
         {post.categoria === 'garaje' && <GarajeDetalle post={post} usuario={usuario} />}

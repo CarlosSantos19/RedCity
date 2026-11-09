@@ -174,6 +174,25 @@ export interface Calificacion {
 
 export type MotivoReporte = 'estafa' | 'falso' | 'discriminacion' | 'ofensivo' | 'peligroso' | 'otro';
 
+/** Un vecino bloqueó a otro: dejan de verse y no pueden escribirse ni contratarse. */
+export interface Bloqueo {
+  de: string;
+  a: string;
+  /** Nombre del bloqueado, para mostrarlo en la lista de "Vecinos bloqueados" */
+  nombre: string;
+}
+
+/** Reporte de una persona o un chat; queda pendiente para revisión humana. */
+export interface ReporteUsuario {
+  id: string;
+  reportadoId: string;
+  porId: string;
+  conversacionId?: string;
+  motivo: MotivoReporte;
+  detalle: string;
+  creado: number;
+}
+
 export interface Reporte {
   id: string;
   postId: string;
