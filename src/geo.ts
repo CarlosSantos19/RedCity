@@ -39,8 +39,10 @@ function pedirPosicion(opciones: PositionOptions): Promise<{ lat: number; lng: n
  * Primero intenta el GPS preciso; si no responde (pasa mucho dentro de las casas), usa la ubicación
  * aproximada por wifi o antenas, que igual sirve para ubicar el barrio.
  */
-export async function obtenerUbicacion(): Promise<{ lat: number; lng: number }> {
+export async function obtenerUbicacion(opc: { rapido?: boolean } = {}): Promise<{ lat: number; lng: number }> {
   if (!navigator.geolocation) throw new Error('Este dispositivo no permite ubicación');
+  // SOS: no puede esperar; si en 8 s no hay posición, quien llama usa la ubicación del perfil
+  if (opc.rapido) return pedirPosicion({ enableHighAccuracy: true, timeout: 8000, maximumAge: 2 * 60_000 });
   try {
     return await pedirPosicion({ enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 });
   } catch (e) {

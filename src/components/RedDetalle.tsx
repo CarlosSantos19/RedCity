@@ -34,7 +34,7 @@ export function RedDetalle({ red, usuario, onCerrar }: Props) {
   async function enviarSOS() {
     setEnviandoSOS(true);
     let pos = { lat: usuario.lat, lng: usuario.lng };
-    try { pos = await obtenerUbicacion(); } catch { /* se usa la ubicación del perfil */ }
+    try { pos = await obtenerUbicacion({ rapido: true }); } catch { /* se usa la ubicación del perfil */ }
     acciones.enviarMensajeRed(red.id, usuario, { tipo: 'sos', texto: texto.trim() || '¡Necesito ayuda urgente!', ...pos });
     setTexto('');
     setEnviandoSOS(false);
