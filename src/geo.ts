@@ -29,13 +29,29 @@ export function hace(ts: number): string {
   return `hace ${d} d`;
 }
 
-export function obtenerUbicacion(): Promise<{ lat: number; lng: number }> {
+function pedirPosicion(opciones: PositionOptions): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('Este dispositivo no permite geolocalización'));
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      (e) => reject(new Error(e.code === 1 ? 'Permiso de ubicación denegado' : 'No se pudo obtener la ubicación')),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }), reject, opciones);
   });
+}
+
+/**
+ * Primero intenta el GPS preciso; si no responde (pasa mucho dentro de las casas), usa la ubicación
+ * aproximada por wifi o antenas, que igual sirve para ubicar el barrio.
+ */
+export async function obtenerUbicacion(): Promise<{ lat: number; lng: number }> {
+  if (!navigator.geolocation) throw new Error('Este dispositivo no permite ubicación');
+  try {
+    return await pedirPosicion({ enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 });
+  } catch (e) {
+    if ((e as GeolocationPositionError).code === 1) {
+      throw new Error('No diste permiso de ubicación. Actívalo en Ajustes del celular → Aplicaciones → RedCity (o tu navegador) → Permisos → Ubicación, y vuelve a intentarlo');
+    }
+  }
+  try {
+    return await pedirPosicion({ enableHighAccuracy: false, timeout: 20000, maximumAge: 5 * 60_000 });
+  } catch (e) {
+    if ((e as GeolocationPositionError).code === 1) throw new Error('No diste permiso de ubicación. Actívalo en los ajustes del celular y vuelve a intentarlo');
+    throw new Error('No pudimos encontrar tu ubicación. Revisa que la ubicación (GPS) del celular esté encendida, acércate a una ventana y vuelve a intentarlo');
+  }
 }
