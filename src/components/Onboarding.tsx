@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CUENTA_DEMO, acciones, nuevoId, useEstado } from '../store';
-import { LOCALIDADES } from '../data/bogota';
-import { type Municipio, cargarMunicipios, departamentoDe, estaEnColombia, lugarDeBarrio, municipioCercano } from '../data/colombia';
+import { CENTROS_LOCALIDADES, LOCALIDADES } from '../data/bogota';
+import { CODIGO_BOGOTA, type Municipio, cargarMunicipios, departamentoDe, estaEnColombia, localidadCercana, lugarDeBarrio, municipioCercano } from '../data/colombia';
 import { distanciaKm, obtenerUbicacion } from '../geo';
 import { errorClave, errorCorreo, normalizarCorreo } from '../auth';
 import type { Barrio } from '../types';
@@ -195,8 +195,8 @@ function Registro() {
       if (!mun) return;
       setDepartamento(mun.d);
       setCodigoMun(mun.c);
-      // Sugiere la localidad/comuna del barrio registrado más cercano del mismo municipio
-      setLocalidad(cercano && cercano.ciudad === mun.m && d <= 3 ? cercano.localidad : '');
+      // Sugiere la localidad: en Bogotá la más cercana; en otros municipios, la del barrio registrado más cercano
+      setLocalidad(mun.c === CODIGO_BOGOTA ? localidadCercana(pos.lat, pos.lng) : cercano && cercano.ciudad === mun.m && d <= 3 ? cercano.localidad : '');
       setBarrioId('__nuevo');
       setAviso(`📍 Estás en ${mun.m} (${mun.d}). Tu barrio aún no está registrado: escribe su nombre y serás su primer vecino. Si ya está en la lista, elígelo.`);
     } catch (e) {
@@ -209,7 +209,12 @@ function Registro() {
   // El GPS debe estar en Colombia y razonablemente cerca del municipio elegido
   const kmAlMunicipio = gps && municipio ? distanciaKm(gps.lat, gps.lng, municipio.la, municipio.lo) : 0;
   const gpsOk = !!gps && estaEnColombia(gps.lat, gps.lng) && kmAlMunicipio <= MAX_KM_MUNICIPIO;
-  const barrioOk = creandoBarrio ? nuevoBarrio.trim().length >= 3 && !!municipio && gpsOk : !!barrio;
+  // Sin GPS el barrio nuevo se ubica en el centro de la localidad (Bogotá) o del municipio; el vecino queda sin verificar
+  const centroSinGps = !municipio ? null
+    : esBogota ? (CENTROS_LOCALIDADES[localidad] ?? null)
+    : { lat: municipio.la, lng: municipio.lo };
+  const ubicacionBarrioOk = gps ? gpsOk : !!centroSinGps;
+  const barrioOk = creandoBarrio ? nuevoBarrio.trim().length >= 3 && !!municipio && ubicacionBarrioOk : !!barrio;
   const puedeCrear = nombre.trim().length >= 2 && c && !errFormato && !errUsado && clave && !errClave && clave2 === clave && habeas && barrioOk;
 
   async function crear(e: React.FormEvent) {
@@ -225,6 +230,7 @@ function Registro() {
         barrioNuevo: creandoBarrio ? nuevoBarrio.trim() : undefined,
         ciudad: municipio?.m, departamento: municipio?.d, codigoMunicipio: municipio?.c,
         gps: gps && estaEnColombia(gps.lat, gps.lng) ? gps : undefined,
+        centroAproximado: creandoBarrio && !gps && centroSinGps ? centroSinGps : undefined,
       });
       setEnviando(false);
       if (r.error) setError(r.error);
@@ -233,8 +239,9 @@ function Registro() {
     }
     let destino: Barrio;
     let creado: Barrio | undefined;
-    if (creandoBarrio && gps && municipio) {
-      creado = { id: nuevoId(), nombre: nuevoBarrio.trim(), localidad: localidad.trim(), ciudad: municipio.m, departamento: municipio.d, lat: gps.lat, lng: gps.lng };
+    const centroNuevo = gps ?? centroSinGps;
+    if (creandoBarrio && centroNuevo && municipio) {
+      creado = { id: nuevoId(), nombre: nuevoBarrio.trim(), localidad: localidad.trim(), ciudad: municipio.m, departamento: municipio.d, lat: centroNuevo.lat, lng: centroNuevo.lng };
       destino = creado;
     } else {
       destino = barrio!;
@@ -319,7 +326,12 @@ function Registro() {
         <>
           <label>Nombre de tu barrio
             <input value={nuevoBarrio} onChange={(e) => setNuevoBarrio(e.target.value)} placeholder="Ej: Villa del Prado" maxLength={60} />
-            {!gps && <small>Para registrar un barrio nuevo necesitamos tu ubicación GPS (toca “Detectar mi barrio”).</small>}
+            {!gps && (
+              <small>
+                {esBogota && !localidad ? 'Elige la localidad de tu barrio. ' : ''}
+                Si el GPS no te funciona, igual puedes crearlo: lo ubicaremos de forma aproximada y tu perfil quedará sin verificar.
+              </small>
+            )}
             {gps && !gpsOk && <small className="error">Tu ubicación está a {Math.round(kmAlMunicipio)} km de {municipio.m}. Revisa el municipio o vuelve a detectar tu ubicación.</small>}
           </label>
           {esBogota ? (

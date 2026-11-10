@@ -86,6 +86,8 @@ export interface DatosRegistroNube {
   departamento?: string;
   codigoMunicipio?: string;
   gps?: { lat: number; lng: number };
+  /** Centro aproximado (localidad o municipio) para un barrio nuevo cuando el GPS no respondió */
+  centroAproximado?: { lat: number; lng: number };
 }
 
 /** Devuelve error, o confirmarCorreo=true si debe abrir el enlace que le llegó al correo. */
@@ -103,6 +105,7 @@ export async function registrarEnNube(d: DatosRegistroNube): Promise<{ error?: s
         nombre: d.nombre.trim(), barrio: d.barrio, barrio_nuevo: d.barrioNuevo ?? '', localidad: d.localidad,
         ciudad: d.ciudad ?? '', departamento: d.departamento ?? '', codigo_municipio: d.codigoMunicipio ?? '',
         habeas: true, gps: !!d.gps, ...(d.gps ? { lat: d.gps.lat, lng: d.gps.lng } : {}),
+        ...(!d.gps && d.centroAproximado ? { centro_lat: d.centroAproximado.lat, centro_lng: d.centroAproximado.lng } : {}),
       },
     },
   });

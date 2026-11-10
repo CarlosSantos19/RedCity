@@ -18,6 +18,34 @@ export const LOCALIDADES = [
   'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz',
 ];
 
+/**
+ * Centro aproximado de la zona habitada de cada localidad. Sirve para dos cosas: que el GPS en los bordes
+ * de Bogotá no la confunda con un municipio vecino (Chipaque, Soacha…) y para ubicar un barrio nuevo
+ * cuando el GPS del celular no responde.
+ */
+export const CENTROS_LOCALIDADES: Record<string, { lat: number; lng: number }> = {
+  'Usaquén': { lat: 4.7200, lng: -74.0380 },
+  'Chapinero': { lat: 4.6480, lng: -74.0620 },
+  'Santa Fe': { lat: 4.6100, lng: -74.0700 },
+  'San Cristóbal': { lat: 4.5700, lng: -74.0850 },
+  'Usme': { lat: 4.5050, lng: -74.1100 },
+  'Tunjuelito': { lat: 4.5750, lng: -74.1350 },
+  'Bosa': { lat: 4.6150, lng: -74.1900 },
+  'Kennedy': { lat: 4.6300, lng: -74.1550 },
+  'Fontibón': { lat: 4.6750, lng: -74.1450 },
+  'Engativá': { lat: 4.7050, lng: -74.1100 },
+  'Suba': { lat: 4.7400, lng: -74.0850 },
+  'Barrios Unidos': { lat: 4.6650, lng: -74.0750 },
+  'Teusaquillo': { lat: 4.6400, lng: -74.0850 },
+  'Los Mártires': { lat: 4.6050, lng: -74.0900 },
+  'Antonio Nariño': { lat: 4.5900, lng: -74.1000 },
+  'Puente Aranda': { lat: 4.6150, lng: -74.1150 },
+  'La Candelaria': { lat: 4.5970, lng: -74.0730 },
+  'Rafael Uribe Uribe': { lat: 4.5600, lng: -74.1150 },
+  'Ciudad Bolívar': { lat: 4.5550, lng: -74.1500 },
+  'Sumapaz': { lat: 4.1500, lng: -74.2500 },
+};
+
 const b = (id: string, nombre: string, localidad: string, lat: number, lng: number): Barrio =>
   ({ id: `bog-${id}`, nombre, localidad, ciudad: CIUDAD, lat, lng });
 

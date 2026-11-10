@@ -1,5 +1,6 @@
 import type { Barrio } from '../types';
 import { distanciaKm } from '../geo';
+import { CENTROS_LOCALIDADES } from './bogota';
 
 /** Municipio de Colombia según la codificación DIVIPOLA del DANE. */
 export interface Municipio {
@@ -36,10 +37,28 @@ export function municipioCercano(municipios: Municipio[], lat: number, lng: numb
   let mejor: Municipio | undefined;
   let d = Infinity;
   for (const m of municipios) {
-    const x = distanciaKm(lat, lng, m.la, m.lo);
+    // Bogotá es enorme: se mide contra el centro de cada localidad, no solo contra la Plaza de Bolívar
+    const x = m.c === CODIGO_BOGOTA ? distanciaKm(lat, lng, ...centroLocalidadCercana(lat, lng)[1]) : distanciaKm(lat, lng, m.la, m.lo);
     if (x < d) { d = x; mejor = m; }
   }
   return mejor;
+}
+
+export const CODIGO_BOGOTA = '11001';
+
+/** Localidad de Bogotá cuyo centro está más cerca del punto, con ese centro. */
+function centroLocalidadCercana(lat: number, lng: number): [string, [number, number]] {
+  let mejor: [string, [number, number]] = ['', [lat, lng]];
+  let d = Infinity;
+  for (const [nombre, c] of Object.entries(CENTROS_LOCALIDADES)) {
+    const x = distanciaKm(lat, lng, c.lat, c.lng);
+    if (x < d) { d = x; mejor = [nombre, [c.lat, c.lng]]; }
+  }
+  return mejor;
+}
+
+export function localidadCercana(lat: number, lng: number): string {
+  return centroLocalidadCercana(lat, lng)[0];
 }
 
 /** "Chapinero Alto, Chapinero · Bogotá" o "El Poblado · Medellín" */
