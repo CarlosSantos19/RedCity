@@ -613,3 +613,17 @@ h1, h2, h3, h4 { margin: 0; }
 .invitar-vecinos { display: grid; gap: .5rem; }
 .invitar-vecinos .btn.whatsapp { text-align: center; text-decoration: none; }
 .invitar-vecinos .invitar-botones { justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Cerca de mí (directorio) ---------- */
+.cerca-cabeza { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.cerca-cabeza h2 { font-size: 1.1rem; margin: .2rem 0; }
+.lugar { display: flex; gap: .75rem; background: var(--tarjeta); border-radius: 14px; padding: .85rem 1rem; box-shadow: 0 1px 3px #0001; }
+.lugar.sin-nombre { opacity: .8; }
+.lugar-icono { font-size: 1.6rem; width: 2.4rem; height: 2.4rem; display: grid; place-items: center; background: var(--primario-claro); border-radius: 12px; flex-shrink: 0; }
+.lugar-datos { display: flex; flex-direction: column; gap: .15rem; min-width: 0; flex: 1; }
+.lugar-datos small { color: var(--suave); overflow-wrap: anywhere; }
+.lugar-acciones { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+.lugar-acciones .btn { text-decoration: none; font-size: .8rem; padding: .35rem .65rem; }
+.atribucion { margin: .5rem 0 5rem; font-size: .75rem; }
+.sugerencia-cerca { display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left; border: 1px dashed var(--primario); background: var(--primario-claro); color: var(--primario-oscuro); border-radius: 14px; padding: .75rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+.sugerencia-cerca span { font-size: 1.4rem; }

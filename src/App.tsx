@@ -24,6 +24,8 @@ import { DirectorioEmpresas, FormEmpresa, PaginaEmpresa } from './components/Emp
 import type { Empresa } from './types';
 import { PanelDerecho, PanelIzquierdo } from './components/Laterales';
 import { Bienvenida, bienvenidaVista } from './components/Bienvenida';
+import { Cerca } from './components/Cerca';
+import { CATEGORIAS_LUGAR, type CategoriaLugarId, categoriaDeBusqueda } from './directorio';
 import { FilaDesplazable } from './components/FilaDesplazable';
 import { NUBE } from './nube/config';
 import { CargandoNube, ErrorNube, NuevaClave } from './nube/ComponentesNube';
@@ -33,7 +35,7 @@ const RADIOS = [0.5, 1, 2];
 /** Las alertas urgentes se fijan arriba del feed durante 24 h. */
 const FIJAR_URGENTE_MS = 24 * 3600_000;
 
-type Vista = 'barrio' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
+type Vista = 'barrio' | 'cerca' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
 
 /** Minúsculas y sin tildes, para que "plomeria" encuentre "Plomería". */
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -80,6 +82,7 @@ export default function App() {
   const [verReels, setVerReels] = useState(false);
   const [visorHist, setVisorHist] = useState<{ grupos: Grupo[]; indice: number } | null>(null);
   const [bienvenidaCerrada, setBienvenidaCerrada] = useState(false);
+  const [cercaInicial, setCercaInicial] = useState<CategoriaLugarId | undefined>();
 
   // Enlaces compartidos (?post=id) abren directamente la publicación
   const logueado = !!usuario;
@@ -170,6 +173,7 @@ export default function App() {
   const sos = alertasRedes.filter((a) => a.m.tipo === 'sos');
   const sinLeer = conversaciones.filter((c) => c.participantes.includes(usuario.id)).reduce((t, c) => t + noLeidos(c, usuario.id), 0);
 
+  const sugerenciaCerca = categoriaDeBusqueda(busqueda);
   const postAbierto = posts.find((p) => p.id === ui.postId);
   const red = redes.find((r) => r.id === ui.redId);
   const chat = conversaciones.find((c) => c.id === ui.chatId);
@@ -254,6 +258,7 @@ export default function App() {
       )}
 
       <main>
+        {vista === 'cerca' && <Cerca usuario={usuario} inicial={cercaInicial} />}
         {vista === 'redes' && <Redes usuario={usuario} redes={redes} barrios={barrios} onAbrir={nav.red} />}
         {vista === 'mensajes' && <Bandeja usuario={usuario} />}
         {vista === 'servicios' && <MisServicios usuario={usuario} posts={posts} pagos={pagos} onAbrir={nav.post} />}
@@ -262,6 +267,11 @@ export default function App() {
           <MapView usuario={usuario} posts={cercanos.map((x) => x.post)} onAbrir={nav.post} />
         ) : (
           <div className="feed">
+            {sugerenciaCerca && (
+              <button className="sugerencia-cerca" onClick={() => { setCercaInicial(sugerenciaCerca); setVista('cerca'); }}>
+                <span>{CATEGORIAS_LUGAR[sugerenciaCerca].icono}</span> Ver {CATEGORIAS_LUGAR[sugerenciaCerca].nombre.toLowerCase()} cerca de ti →
+              </button>
+            )}
             {!busqueda && !NUBE && (
               <BarraHistorias
                 usuario={usuario}
@@ -293,6 +303,7 @@ export default function App() {
 
       <nav className="bottombar">
         {pestaña('barrio', '📰', 'Barrio')}
+        {pestaña('cerca', '🔎', 'Cerca')}
         {pestaña('redes', '🤝', 'Redes', alertasRedes.length > 0)}
         {pestaña('mensajes', '💬', 'Mensajes', sinLeer)}
         {pestaña('servicios', '💼', 'Servicios')}

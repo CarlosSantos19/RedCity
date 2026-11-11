@@ -9,7 +9,7 @@ import { InvitarVecinos } from './Bienvenida';
 import { NUBE } from '../nube/config';
 import { lugarDeBarrio } from '../data/colombia';
 
-export type VistaApp = 'barrio' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
+export type VistaApp = 'barrio' | 'cerca' | 'redes' | 'mensajes' | 'servicios' | 'perfil';
 
 /**
  * Paneles laterales: solo aparecen en pantallas anchas (computador / tablet horizontal).
@@ -49,6 +49,7 @@ export function PanelIzquierdo({ usuario, vista, onVista, onNegocios, onReels, o
 
       <nav className="lat-nav">
         {item('barrio', '📰', 'Mi barrio')}
+        {item('cerca', '🔎', 'Cerca de mí: panaderías, droguerías…')}
         {item('redes', '🤝', 'Redes de seguridad y apoyo', conAlerta && <i className="lat-alerta">🆘</i>)}
         {item('mensajes', '💬', 'Mensajes', sinLeer > 0 && <i className="lat-contador">{sinLeer}</i>)}
         {item('servicios', '💼', 'Mis servicios')}
