@@ -201,7 +201,7 @@ h1, h2, h3, h4 { margin: 0; }
 .galeria-img { height: 220px; max-width: 88%; flex: none; border-radius: 12px; object-fit: cover; scroll-snap-align: start; cursor: zoom-in; min-width: 160px; }
 .visor { position: fixed; inset: 0; z-index: 2000; background: #000e; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
 .visor-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.con-foto { display: grid; grid-template-columns: 1fr 84px; gap: .7rem; align-items: start; }
+.con-foto { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: .7rem; align-items: start; }
 .miniatura { position: relative; width: 84px; height: 84px; border-radius: 10px; overflow: hidden; }
 .miniatura-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .miniatura span { position: absolute; bottom: 4px; right: 4px; background: #000a; color: #fff; font-size: .7rem; padding: 0 .3rem; border-radius: 6px; }
@@ -627,3 +627,7 @@ h1, h2, h3, h4 { margin: 0; }
 .atribucion { margin: .5rem 0 5rem; font-size: .75rem; }
 .sugerencia-cerca { display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left; border: 1px dashed var(--primario); background: var(--primario-claro); color: var(--primario-oscuro); border-radius: 14px; padding: .75rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
 .sugerencia-cerca span { font-size: 1.4rem; }
+
+/* Textos largos sin espacios (enlaces) se parten en vez de estirar la tarjeta */
+.post-card h3, .post-card .trueque-line, .post-card .desc, .post-detalle p, .modal p { overflow-wrap: anywhere; }
+.post-card { min-width: 0; overflow: hidden; }
