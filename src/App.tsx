@@ -23,6 +23,7 @@ import { VisorReels } from './components/Reels';
 import { DirectorioEmpresas, FormEmpresa, PaginaEmpresa } from './components/Empresas';
 import type { Empresa } from './types';
 import { PanelDerecho, PanelIzquierdo } from './components/Laterales';
+import { Bienvenida, bienvenidaVista } from './components/Bienvenida';
 import { FilaDesplazable } from './components/FilaDesplazable';
 import { NUBE } from './nube/config';
 import { CargandoNube, ErrorNube, NuevaClave } from './nube/ComponentesNube';
@@ -78,6 +79,7 @@ export default function App() {
   const [creacion, setCreacion] = useState<Exclude<TipoCreacion, 'publicacion' | 'negocio'> | null>(null);
   const [verReels, setVerReels] = useState(false);
   const [visorHist, setVisorHist] = useState<{ grupos: Grupo[]; indice: number } | null>(null);
+  const [bienvenidaCerrada, setBienvenidaCerrada] = useState(false);
 
   // Enlaces compartidos (?post=id) abren directamente la publicación
   const logueado = !!usuario;
@@ -297,6 +299,7 @@ export default function App() {
         {pestaña('perfil', '👤', 'Perfil')}
       </nav>
 
+      {!bienvenidaCerrada && !bienvenidaVista(usuario.id) && <Bienvenida usuario={usuario} barrio={barrio} onCerrar={() => setBienvenidaCerrada(true)} />}
       {postAbierto && <PostDetail post={postAbierto} usuario={usuario} barrio={nombreBarrio.get(postAbierto.barrioId) ?? ''} />}
       {red && <RedDetalle red={red} usuario={usuario} onCerrar={() => nav.red(null)} />}
       {ui.perfilId && <PerfilModal perfilId={ui.perfilId} usuario={usuario} />}

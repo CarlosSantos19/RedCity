@@ -5,7 +5,7 @@ import { nav } from '../ui';
 import { RUBRO } from '../servicios';
 import { Reputacion } from './Estrellas';
 import { Avatar } from './Avatar';
-import { URL_APP } from '../marca';
+import { InvitarVecinos } from './Bienvenida';
 import { NUBE } from '../nube/config';
 import { lugarDeBarrio } from '../data/colombia';
 
@@ -103,7 +103,7 @@ const EMERGENCIAS = [
 const fechaDe = (p: Post) => (p.categoria === 'evento' ? p.fecha : p.categoria === 'garaje' ? p.inicio : '');
 
 export function PanelDerecho({ usuario, onNegocios }: { usuario: Usuario; onNegocios: () => void }) {
-  const { posts, redes, empresas } = useEstado();
+  const { posts, redes, empresas, barrios } = useEstado();
   const ahora = Date.now();
   const cerca = (x: { lat: number; lng: number }, km = usuario.radioKm) => distanciaKm(usuario.lat, usuario.lng, x.lat, x.lng) <= km;
 
@@ -128,7 +128,6 @@ export function PanelDerecho({ usuario, onNegocios }: { usuario: Usuario; onNego
     .sort((a, b) => a.d - b.d)
     .slice(0, 4);
 
-  const invitar = `¡Únete a RedCity! La red de nuestro barrio para servicios, seguridad y ventas entre vecinos: ${URL_APP}`;
 
   return (
     <div className="panel-lateral">
@@ -185,7 +184,7 @@ export function PanelDerecho({ usuario, onNegocios }: { usuario: Usuario; onNego
       <section className="lat-tarjeta invitar-tarjeta">
         <h4>💌 Invita a tus vecinos</h4>
         <p>Entre más vecinos, más útil es la red: más servicios, más seguridad, más ventas.</p>
-        <a className="btn whatsapp" href={`https://wa.me/?text=${encodeURIComponent(invitar)}`} target="_blank" rel="noreferrer">Invitar por WhatsApp</a>
+        <InvitarVecinos barrio={barrios.find((b) => b.id === usuario.barrioId)} />
       </section>
     </div>
   );

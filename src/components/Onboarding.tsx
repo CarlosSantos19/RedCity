@@ -12,9 +12,14 @@ const RADIO_VERIFICACION_KM = 1.5;
 /** Distancia máxima (km) entre el GPS y la cabecera del municipio elegido para crear un barrio nuevo allí. */
 const MAX_KM_MUNICIPIO = 100;
 
+/** Barrio del enlace de invitación (?barrio=slug), si lo hay. */
+function barrioInvitado(): string {
+  try { return new URLSearchParams(location.search).get('barrio') ?? ''; } catch { return ''; }
+}
+
 export function Onboarding() {
   const { cuentas } = useEstado();
-  const [modo, setModo] = useState<'entrar' | 'registro'>('entrar');
+  const [modo, setModo] = useState<'entrar' | 'registro'>(() => (barrioInvitado() ? 'registro' : 'entrar'));
 
   return (
     <div className="onboarding">
@@ -134,6 +139,21 @@ function Registro() {
     return cargarMunicipios().then((m) => { setMunicipios(m); return m; }, () => { setErrMunicipios(true); return null; });
   }
   useEffect(() => { void traerMunicipios(); }, []);
+
+  // Enlace de invitación: deja el barrio del vecino que invitó ya elegido (una sola vez)
+  const [invitacionAplicada, setInvitacionAplicada] = useState(false);
+  useEffect(() => {
+    const slug = barrioInvitado();
+    if (invitacionAplicada || !slug || !municipios || !barrios.length) return;
+    setInvitacionAplicada(true);
+    const b = barrios.find((x) => x.id === slug);
+    const mun = b && municipios.find((m) => m.m === b.ciudad && m.d === departamentoDe(b));
+    if (!b || !mun) return;
+    setDepartamento(mun.d);
+    setCodigoMun(mun.c);
+    setBarrioId(b.id);
+    setAviso(`👋 Te invitaron a ${b.nombre} (${lugarDeBarrio(b)}). Si no es tu barrio, cámbialo abajo.`);
+  }, [municipios, barrios, invitacionAplicada]);
 
   const departamentos = useMemo(() => [...new Set((municipios ?? []).map((m) => m.d))], [municipios]);
   const municipiosDepto = useMemo(() => (municipios ?? []).filter((m) => m.d === departamento), [municipios, departamento]);

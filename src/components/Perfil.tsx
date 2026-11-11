@@ -7,6 +7,7 @@ import { NUBE } from '../nube/config';
 import { hace } from '../geo';
 import { AccionesVecino } from './AccionesVecino';
 import { ActivarNotificaciones } from './Notificaciones';
+import { InvitarVecinos } from './Bienvenida';
 import { lugarDeBarrio } from '../data/colombia';
 import { nav } from '../ui';
 import { NOMBRE_DOCUMENTO, REQUISITOS, RUBRO, cop } from '../servicios';
@@ -238,6 +239,12 @@ export function MiPerfil({ usuario, onSalir, onCrearNegocio }: { usuario: Usuari
           <ActivarNotificaciones />
         </section>
       )}
+
+      <section className="panel">
+        <h3>💌 Invita a tus vecinos</h3>
+        <p className="muted">Entre más vecinos, más útil es tu barrio. El enlace les abre RedCity con tu barrio ya elegido.</p>
+        <InvitarVecinos barrio={barrios.find((b) => b.id === usuario.barrioId)} />
+      </section>
 
       <section className="panel">
         <h3>📱 La app en tu celular</h3>

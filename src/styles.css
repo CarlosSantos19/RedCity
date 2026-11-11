@@ -596,3 +596,20 @@ h1, h2, h3, h4 { margin: 0; }
 .fila-acciones-vecino { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; }
 .fila-acciones-vecino .btn { width: auto; margin: 0; padding: .3rem .5rem; color: var(--suave); }
 .reporte-vecino { padding: .5rem 0; }
+
+/* ---------- Bienvenida e invitar vecinos ---------- */
+.modal.bienvenida { padding-top: 1.2rem; }
+.bienvenida-cabeza { text-align: center; }
+.bienvenida-cabeza .logo { font-size: 2.6rem; }
+.bienvenida-cabeza h2 { margin: .2rem 0; color: var(--primario); }
+.bienvenida-cabeza p { margin: 0; }
+.bienvenida-ventajas { list-style: none; padding: 0; margin: .4rem 0 0; display: grid; gap: .6rem; }
+.bienvenida-ventajas li { display: flex; gap: .7rem; align-items: flex-start; }
+.bienvenida-ventajas li > span { font-size: 1.5rem; line-height: 1.2; }
+.bienvenida-ventajas b { display: block; }
+.bienvenida-ventajas small { color: var(--suave); line-height: 1.35; display: block; }
+.bienvenida-invitar { background: var(--primario-claro); border-radius: 14px; padding: .2rem 1rem 1rem; margin: 1.2rem 0 .8rem; }
+.bienvenida-invitar h4 { margin-top: .8rem; }
+.invitar-vecinos { display: grid; gap: .5rem; }
+.invitar-vecinos .btn.whatsapp { text-align: center; text-decoration: none; }
+.invitar-vecinos .invitar-botones { justify-content: center; flex-wrap: wrap; }
