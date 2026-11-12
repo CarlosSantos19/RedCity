@@ -25,6 +25,7 @@ import type { Empresa } from './types';
 import { PanelDerecho, PanelIzquierdo } from './components/Laterales';
 import { Bienvenida, bienvenidaVista } from './components/Bienvenida';
 import { Cerca } from './components/Cerca';
+import { Campanita } from './components/Campanita';
 import { CATEGORIAS_LUGAR, type CategoriaLugarId, categoriaDeBusqueda } from './directorio';
 import { FilaDesplazable } from './components/FilaDesplazable';
 import { NUBE } from './nube/config';
@@ -92,6 +93,18 @@ export default function App() {
     nav.post(id);
     history.replaceState(null, '', location.pathname);
   }, [logueado]);
+
+  // Al tocar una notificación con la app abierta, el service worker pide abrir la publicación
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const alRecibir = (e: MessageEvent) => {
+      if (e.data?.tipo !== 'abrir') return;
+      const id = new URL(e.data.url, location.href).searchParams.get('post');
+      if (id) nav.post(id);
+    };
+    navigator.serviceWorker.addEventListener('message', alRecibir);
+    return () => navigator.serviceWorker.removeEventListener('message', alRecibir);
+  }, []);
 
   function elegirCreacion(t: TipoCreacion) {
     setMenuCrear(false);
@@ -199,7 +212,8 @@ export default function App() {
       <PanelIzquierdo usuario={usuario} vista={vista} onVista={setVista} onNegocios={() => setVerNegocios(true)} onReels={() => setVerReels(true)} onCrear={abrirCrear} />
     </aside>
     <div className="app">
-      <header className="topbar">
+      <header className={`topbar ${NUBE ? 'con-campanita' : ''}`}>
+        {NUBE && <Campanita />}
         <div>
           <h1>🏘️ {barrio?.nombre}</h1>
           <p>{lugarDeBarrio(barrio)} · {usuario.nombre} {usuario.verificado ? <span className="verif">✔ verificado</span> : <span className="sin-verif">sin verificar</span>}</p>

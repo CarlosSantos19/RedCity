@@ -631,3 +631,17 @@ h1, h2, h3, h4 { margin: 0; }
 /* Textos largos sin espacios (enlaces) se parten en vez de estirar la tarjeta */
 .post-card h3, .post-card .trueque-line, .post-card .desc, .post-detalle p, .modal p { overflow-wrap: anywhere; }
 .post-card { min-width: 0; overflow: hidden; }
+
+/* ---------- Campanita de avisos ---------- */
+.topbar.con-campanita { position: sticky; padding-right: 3.8rem; }
+.campanita { position: absolute; top: .75rem; right: .9rem; width: 2.5rem; height: 2.5rem; border-radius: 50%; border: none; background: #ffffff26; font-size: 1.25rem; cursor: pointer; }
+.campanita i { position: absolute; top: -3px; right: -3px; min-width: 1.15rem; height: 1.15rem; padding: 0 .25rem; border-radius: 999px; background: #facc15; color: #1c1416; font-size: .7rem; font-style: normal; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--primario); }
+.lista-avisos { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .4rem; }
+.aviso-item { display: flex; gap: .7rem; width: 100%; text-align: left; border: 1px solid var(--borde); background: #fff; border-radius: 12px; padding: .7rem .8rem; font: inherit; color: inherit; cursor: pointer; }
+.aviso-item.nuevo { background: var(--primario-claro); border-color: #f7c5ca; }
+.aviso-item.seguridad { border-left: 4px solid var(--peligro); }
+.aviso-item:disabled { cursor: default; opacity: .7; }
+.aviso-icono { font-size: 1.3rem; line-height: 1.2; }
+.aviso-texto { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.aviso-texto small { color: var(--suave); overflow-wrap: anywhere; }
+.aviso-hace { font-size: .72rem; }

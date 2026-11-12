@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type {
-  Barrio, Bloqueo, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajePrivado, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
+  AvisoCampana, Barrio, Bloqueo, Calificacion, Conversacion, Cuenta, Empresa, Historia, MensajePrivado, MensajeRed, MotivoReporte, Nota, Pago, PlanPromocionId, Post,
   PostServicio, Postulacion, Promocion, Red, Reel, Reporte, ReporteUsuario, RespuestaAlerta, TipoDocumento, TipoRed, Usuario, VisibilidadFoto,
 } from './types';
 import { borrarFoto } from './fotos';
@@ -34,6 +34,8 @@ export interface Estado {
   reportes: Reporte[];
   bloqueos: Bloqueo[];
   reportesUsuario: ReporteUsuario[];
+  /** Campanita 🔔 (solo en la versión real) */
+  avisos: AvisoCampana[];
   promociones: Promocion[];
   historias: Historia[];
   reels: Reel[];
@@ -141,6 +143,7 @@ export interface GanchosNube {
   reportarUsuario(otroId: string, motivo: MotivoReporte, detalle: string, conversacionId?: string): void;
   actualizarNombre(nombre: string): void;
   cerrarSesion(): void;
+  marcarAvisosLeidos(): void;
   // Etapa 2: redes y chat
   crearRed(red: Red): void;
   unirseRed(redId: string): void;
@@ -191,10 +194,10 @@ function inicial(): Estado {
   if (NUBE) {
     // Modo real: nada de ejemplo (negocios, redes, reseñas, historias falsas confundirían a los vecinos)
     return { cuentas: [], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts: [], pagos: [], redes: [],
-      conversaciones: [], calificaciones: [], reportes: [], bloqueos: [], reportesUsuario: [], promociones: [], historias: [], reels: [], notas: [], empresas: [] };
+      conversaciones: [], calificaciones: [], reportes: [], bloqueos: [], reportesUsuario: [], avisos: [], promociones: [], historias: [], reels: [], notas: [], empresas: [] };
   }
   return { cuentas: [cuentaDemo()], sesionId: null, usuario: null, barrios: BARRIOS_SEMILLA, posts, pagos: [], redes: redesSemilla(BARRIOS_SEMILLA),
-    conversaciones: [], calificaciones: calificacionesSemilla(), reportes: [], bloqueos: [], reportesUsuario: [], promociones: promocionesSemilla(posts),
+    conversaciones: [], calificaciones: calificacionesSemilla(), reportes: [], bloqueos: [], reportesUsuario: [], avisos: [], promociones: promocionesSemilla(posts),
     historias: historiasSemilla(BARRIOS_SEMILLA), reels: [], notas: notasSemilla(BARRIOS_SEMILLA),
     empresas: empresasSemilla(BARRIOS_SEMILLA),
   };
@@ -224,6 +227,7 @@ function cargar(): Estado {
       s.calificaciones ??= calificacionesSemilla();
       s.reportes ??= [];
       s.bloqueos ??= [];
+      s.avisos ??= [];
       s.reportesUsuario ??= [];
       s.promociones ??= promocionesSemilla(s.posts);
       // Datos guardados antes de existir las ventas de garaje
@@ -417,7 +421,12 @@ export const acciones = {
   /** Cierra la sesión sin borrar datos. */
   cerrarSesion() {
     nube?.cerrarSesion();
-    set((s) => ({ ...s, sesionId: null }));
+    set((s) => ({ ...s, sesionId: null, avisos: [] }));
+  },
+  marcarAvisosLeidos() {
+    if (!estado.avisos.some((a) => !a.leido)) return;
+    set((s) => ({ ...s, avisos: s.avisos.map((a) => ({ ...a, leido: true })) }));
+    nube?.marcarAvisosLeidos();
   },
   correoDisponible(correoTexto: string): boolean {
     const c = normalizarCorreo(correoTexto);

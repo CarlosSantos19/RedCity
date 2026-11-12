@@ -1,5 +1,5 @@
 // RedCity · función "enviar-push"
-// La llama la base de datos cuando entra un SOS o un mensaje privado, y envía la notificación
+// La llama la base de datos cuando entra un SOS, un mensaje privado o un aviso de la campanita, y envía la notificación
 // a los celulares suscritos. Sin librerías: Web Push (RFC 8291 y RFC 8292) con WebCrypto.
 // El aviso no incluye el texto del mensaje ni la ubicación: esos solo se ven dentro de la app.
 
@@ -48,7 +48,7 @@ export async function cabeceraVapid(endpoint: string, publica: string, privada: 
 }
 
 interface Suscripcion { endpoint: string; p256dh: string; auth: string }
-interface Aviso { titulo: string; cuerpo: string; etiqueta: string; urgente: boolean }
+interface Aviso { titulo: string; cuerpo: string; etiqueta: string; urgente: boolean; url?: string }
 
 // ---------- Acceso a la base de datos, con los permisos del servidor ----------
 const env = (k: string) => (globalThis as unknown as { Deno: { env: { get(k: string): string } } }).Deno.env.get(k);
@@ -86,6 +86,21 @@ async function prepararChat(id: string): Promise<{ para: string[]; aviso: Aviso 
   return { para: [otro], aviso: { titulo: '💬 Mensaje nuevo', cuerpo: `${await nombreDe(m.autor_id)} te escribió en RedCity.`, etiqueta: `chat-${m.conversacion_id}`, urgente: false } };
 }
 
+/** Avisos de la campanita (comentarios, propuestas, alertas de seguridad): el texto ya lo armó la base de datos. */
+async function prepararAviso(id: string): Promise<{ para: string[]; aviso: Aviso } | null> {
+  const [a] = await leer<{ perfil_id: string; tipo: string; titulo: string; cuerpo: string; publicacion_id: string | null }>(
+    `avisos?id=eq.${id}&select=perfil_id,tipo,titulo,cuerpo,publicacion_id`);
+  if (!a) return null;
+  return {
+    para: [a.perfil_id],
+    aviso: {
+      titulo: a.titulo, cuerpo: a.cuerpo || 'Abre RedCity para verlo.',
+      etiqueta: `aviso-${a.publicacion_id ?? id}`, urgente: a.tipo === 'seguridad',
+      ...(a.publicacion_id ? { url: `?post=${a.publicacion_id}` } : {}),
+    },
+  };
+}
+
 async function enviar(s: Suscripcion, aviso: Aviso, publica: string, privada: string) {
   const r = await fetch(s.endpoint, {
     method: 'POST',
@@ -114,9 +129,9 @@ export async function atender(req: Request): Promise<Response> {
     const ajustes = Object.fromEntries((await leer<{ clave: string; valor: string }>('ajustes_internos?select=clave,valor')).map((a) => [a.clave, a.valor]));
     if (!ajustes.secreto_push || !igual(req.headers.get('x-redcity-secreto') ?? '', ajustes.secreto_push)) return new Response('No autorizado', { status: 401 });
     const { tipo, id } = await req.json();
-    if (!/^[0-9a-f-]{36}$/i.test(String(id)) || !['sos', 'chat'].includes(tipo)) return new Response('Datos no válidos', { status: 400 });
+    if (!/^[0-9a-f-]{36}$/i.test(String(id)) || !['sos', 'chat', 'aviso'].includes(tipo)) return new Response('Datos no válidos', { status: 400 });
     if (!ajustes.vapid_publica || !ajustes.vapid_privada) return new Response('Falta configurar VAPID', { status: 500 });
-    const envio = await (tipo === 'sos' ? prepararSos(id) : prepararChat(id));
+    const envio = await (tipo === 'sos' ? prepararSos(id) : tipo === 'chat' ? prepararChat(id) : prepararAviso(id));
     if (!envio || envio.para.length === 0) return Response.json({ enviados: 0 });
     const subs = await leer<Suscripcion>(`suscripciones_push?perfil_id=in.${lista(envio.para)}&select=endpoint,p256dh,auth`);
     const estados = await Promise.allSettled(subs.map((s) => enviar(s, envio.aviso, ajustes.vapid_publica, ajustes.vapid_privada)));

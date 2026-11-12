@@ -2,7 +2,7 @@ import { createClient, type Session } from '@supabase/supabase-js';
 import { useSyncExternalStore } from 'react';
 import { SUPABASE_KEY, SUPABASE_URL } from './config';
 import { actualizarEstado, leerEstado, registrarGanchosNube } from '../store';
-import type { Barrio, Calificacion, Conversacion, Cuenta, MensajePrivado, MensajeRed, MotivoReporte, Pago, Post, Postulacion, Red, Respuesta } from '../types';
+import type { AvisoCampana, Barrio, Calificacion, Conversacion, Cuenta, MensajePrivado, MensajeRed, MotivoReporte, Pago, Post, Postulacion, Red, Respuesta } from '../types';
 import { leerUI, nav } from '../ui';
 import { esUrl, leerBlob } from '../fotos';
 import { URL_APP } from '../marca';
@@ -162,7 +162,7 @@ async function entrar(sesion: Session) {
     hashClave: '', sal: '', creado: Date.parse(p.creado_en),
   };
   actualizarEstado((s) => ({ ...s, cuentas: [...s.cuentas.filter((c) => c.id !== p.id), cuenta], sesionId: p.id }));
-  await Promise.all([cargarBloqueos(), cargarFeed(), cargarRedes(), cargarChats()]);
+  await Promise.all([cargarBloqueos(), cargarFeed(), cargarRedes(), cargarChats(), cargarAvisos()]);
   void import('./push').then((p) => p.reafirmarSuscripcion()).catch(() => { /* la app sigue sin avisos */ });
   await cargarServicios();
   escucharTiempoReal();
@@ -285,6 +285,20 @@ async function intentarRedes(contexto: string, op: PromiseLike<{ error: unknown 
   const { error } = await op;
   if (error) mostrarError(contexto, error);
   await cargarRedes();
+}
+
+// ---------- Campanita: avisos de actividad y de seguridad ----------
+export async function cargarAvisos() {
+  if (!uid) return;
+  const { data, error } = await supabase.from('avisos')
+    .select('id, tipo, titulo, cuerpo, publicacion_id, leido, creado_en')
+    .order('creado_en', { ascending: false }).limit(50);
+  if (error) return; // sin la tabla (migración 0013 pendiente) la app sigue igual
+  actualizarEstado((s) => ({
+    ...s,
+    avisos: (data as { id: string; tipo: AvisoCampana['tipo']; titulo: string; cuerpo: string; publicacion_id: string | null; leido: boolean; creado_en: string }[])
+      .map((a) => ({ id: a.id, tipo: a.tipo, titulo: a.titulo, cuerpo: a.cuerpo, postId: a.publicacion_id ?? undefined, leido: a.leido, creado: Date.parse(a.creado_en) })),
+  }));
 }
 
 // ---------- Bloqueos y reportes de vecinos ----------
@@ -517,9 +531,9 @@ async function enviarPrivado(convId: string, m: MensajePrivado) {
 // Supabase avisa al instante de SOS, respuestas, miembros y mensajes nuevos (respetando RLS).
 let canal: ReturnType<typeof supabase.channel> | null = null;
 const temporizadores: Record<string, ReturnType<typeof setTimeout>> = {};
-function programar(que: 'redes' | 'chats' | 'feed' | 'servicios') {
+function programar(que: 'redes' | 'chats' | 'feed' | 'servicios' | 'avisos') {
   clearTimeout(temporizadores[que]);
-  temporizadores[que] = setTimeout(() => void (que === 'redes' ? cargarRedes() : que === 'chats' ? cargarChats() : que === 'servicios' ? cargarFeed().then(cargarServicios) : cargarFeed()), 250);
+  temporizadores[que] = setTimeout(() => void (que === 'avisos' ? cargarAvisos() : que === 'redes' ? cargarRedes() : que === 'chats' ? cargarChats() : que === 'servicios' ? cargarFeed().then(cargarServicios) : cargarFeed()), 250);
 }
 function escucharTiempoReal() {
   if (canal) return;
@@ -531,6 +545,7 @@ function escucharTiempoReal() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversaciones' }, () => programar('chats'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'postulaciones' }, () => programar('servicios'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pagos' }, () => programar('servicios'))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avisos' }, () => programar('avisos'))
     .subscribe();
 }
 function dejarDeEscuchar() {
@@ -590,6 +605,8 @@ export async function iniciarNube() {
       // Primero se quita la suscripción: después de cerrar sesión ya no habría permiso para hacerlo
       void import('./push').then((p) => p.quitarDeEstaCuenta()).catch(() => { /* sin conexión */ }).finally(() => void supabase.auth.signOut());
     },
+
+    marcarAvisosLeidos: () => void supabase.rpc('marcar_avisos_leidos').then(() => undefined, () => undefined),
 
     // Etapa 2: redes
     crearRed: (red) => {

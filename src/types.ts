@@ -182,6 +182,17 @@ export interface Bloqueo {
   nombre: string;
 }
 
+/** Aviso de la campanita: actividad en lo mío o alerta de seguridad cercana (lo crea el servidor). */
+export interface AvisoCampana {
+  id: string;
+  tipo: 'comentario' | 'propuesta' | 'propuesta_aceptada' | 'me_gusta' | 'seguridad';
+  titulo: string;
+  cuerpo: string;
+  postId?: string;
+  leido: boolean;
+  creado: number;
+}
+
 /** Reporte de una persona o un chat; queda pendiente para revisión humana. */
 export interface ReporteUsuario {
   id: string;

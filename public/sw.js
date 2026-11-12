@@ -53,14 +53,18 @@ self.addEventListener('push', (e) => {
     renotify: !!a.etiqueta,
     requireInteraction: !!a.urgente,
     vibrate: a.urgente ? [400, 150, 400, 150, 400] : [120],
-    data: { url: BASE },
+    data: { url: a.url ? `${BASE}${a.url}` : BASE },
   }));
 });
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
+  const destino = (e.notification.data && e.notification.data.url) || BASE;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((vs) => {
     const v = vs.find((c) => new URL(c.url).pathname.startsWith(BASE));
-    return v ? v.focus() : self.clients.openWindow(BASE);
+    if (!v) return self.clients.openWindow(destino);
+    // La app ya está abierta: le avisa qué publicación abrir
+    if (destino !== BASE) v.postMessage({ tipo: 'abrir', url: destino });
+    return v.focus();
   }));
 });
