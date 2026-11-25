@@ -111,8 +111,9 @@ export async function buscarLugares(id: CategoriaLugarId, lat: number, lng: numb
       };
     })
     .filter((l) => l.distanciaKm <= radioKm)
-    // Primero los que tienen nombre; dentro de cada grupo, el más cercano
-    .sort((a, b) => Number(a.sinNombre) - Number(b.sinNombre) || a.distanciaKm - b.distanciaKm);
+    // Del más cercano al más lejano (como dice la pantalla), tengan nombre o no;
+    // a igual distancia, primero el que tiene nombre
+    .sort((a, b) => a.distanciaKm - b.distanciaKm || Number(a.sinNombre) - Number(b.sinNombre));
 }
 
 /** Traduce lo más común del formato de horarios de OSM ("Mo-Fr 08:00-19:00; Sa 09:00-13:00"). */
